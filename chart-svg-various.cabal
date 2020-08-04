@@ -41,7 +41,7 @@ library
     lens,
     numhask >= 0.6 && < 0.7,
     numhask-array >= 0.7 && < 0.8,
-    numhask-space >= 0.5 && < 0.6,
+    numhask-space >= 0.6 && < 0.7,
     mealy >= 0.0.1 && < 0.1,
     text >= 1.2 && < 1.3,
     time >= 1.9 && < 1.10,
