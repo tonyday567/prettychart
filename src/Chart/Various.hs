@@ -7,7 +7,6 @@
 module Chart.Various
   ( -- * chart-svg or chart-various transfers
     defaultRender,
-    sp,
     xify,
     xify',
     yify,
@@ -64,18 +63,15 @@ taker n = reverse . take n . reverse
 
 type Rate = Double
 
-sp :: a -> a -> Spot a
-sp x y = SpotPoint (Point x y)
-
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]
 xify ys =
   zipWith Point [0 ..] ys
 
 -- | convert from [a] to [SpotPoint a], by adding the index as the x axis
-xify' :: [Double] -> [Spot Double]
+xify' :: [Double] -> [XY Double]
 xify' ys =
-  zipWith sp [0 ..] ys
+  zipWith P [0 ..] ys
 
 -- | convert from [a] to [Point a], by adding the index as the y axis
 yify :: [Double] -> [Point Double]
@@ -83,30 +79,30 @@ yify xs =
   zipWith Point xs [0 ..]
 
 -- | convert from [a] to [SpotPoint a], by adding the index as the y axis
-yify' :: [Double] -> [Spot Double]
+yify' :: [Double] -> [XY Double]
 yify' xs =
-  zipWith sp xs [0 ..]
+  zipWith P xs [0 ..]
 
 -- | add a horizontal line at y
 addLineX :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
 addLineX y ls cs = cs <> [l]
   where
-    l = Chart (LineA ls) (SpotPoint <$> [Point lx y, Point ux y])
-    (Rect lx ux _ _) = fromMaybe unitRect $ foldRect $ mconcat $ fmap toRect . spots <$> cs
+    l = Chart (LineA ls) (PointXY <$> [Point lx y, Point ux y])
+    (Rect lx ux _ _) = fromMaybe one $ foldRect $ mconcat $ fmap toRect . xys <$> cs
 
 -- | add a verticle line at x
 addLineY :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
 addLineY x ls cs = cs <> [zeroLine]
   where
-    zeroLine = Chart (LineA ls) (SpotPoint <$> [Point x ly, Point x uy])
-    (Rect _ _ ly uy) = fromMaybe unitRect $ foldRect $ mconcat $ fmap toRect . spots <$> cs
+    zeroLine = Chart (LineA ls) (PointXY <$> [Point x ly, Point x uy])
+    (Rect _ _ ly uy) = fromMaybe one $ foldRect $ mconcat $ fmap toRect . xys <$> cs
 
 -- | interpret a [[Double]] as a series of lines with x coordinates of [0..]
 stdLineChart :: Double -> [Colour] -> [[Double]] -> [Chart Double]
 stdLineChart w p xss =
   zipWith
   (\c xs -> Chart (LineA (defaultLineStyle & #color .~ c & #width .~ w))
-    ((SpotPoint <$> xify xs)))
+    (xify' xs))
   p
   xss
 
@@ -192,7 +188,7 @@ quantileChart title names ls as xs =
         & #hudAxes .~ as
     chart' =
       zipWith (\l c -> Chart (LineA l) c) ls
-      (zipWith (\x y -> SpotPoint (Point x y)) [0 ..] <$> xs)
+      (zipWith P [0 ..] <$> xs)
 
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
 blendMidLineStyles l w (c1, c2) = lo
@@ -218,13 +214,13 @@ digitChart title utcs xs =
     c = Chart (GlyphA (defaultGlyphStyle &
                         #color .~ Colour 0 0 1 1 &
                         #shape .~ CircleGlyph & #size .~ 0.01))
-             (SpotPoint <$> xify xs)
+             (xify' xs)
 
 -- | scatter chart
 scatterChart ::
   [[Point Double]] ->
   [Chart Double]
-scatterChart xss = zipWith (\gs xs -> Chart (GlyphA gs) (SpotPoint <$> xs)) (gpaletteStyle 0.02) xss
+scatterChart xss = zipWith (\gs xs -> Chart (GlyphA gs) (PointXY <$> xs)) (gpaletteStyle 0.02) xss
 
 -- | histogram chart
 histChart ::
@@ -269,7 +265,7 @@ quantileHistChart title names qs vs = (hudOptions, [chart'])
                )
                names
            ]
-    chart' = Chart (RectA defaultRectStyle) (SpotRect <$> hr)
+    chart' = Chart (RectA defaultRectStyle) (RectXY <$> hr)
     hr =
       zipWith (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
       (zip qs (drop 1 qs))
@@ -323,7 +319,7 @@ makeTitles (t, xt, yt) =
     ]
 
 tableChart :: [[Text]] -> [Chart Double]
-tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (sp x <$> take (length ts) [0..])) tss [0..]
+tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0..])) tss [0..]
 
 -- * scanners
 -- | simple scan of a time series through a Mealy using a list of rates, with time dimension of [0..]
@@ -331,7 +327,7 @@ scanChart :: (Rate -> Mealy a Double) -> [Rate] -> Int -> [a] -> [Chart Double]
 scanChart m rates d xs =
   zipWith (\s xs' -> Chart (LineA s) xs')
   (stdLines 0.003)
-  (zipWith sp (fromIntegral <$> [d..]) <$> ((\r -> drop d $ scan (m r) xs) <$> rates))
+  (zipWith P (fromIntegral <$> [d..]) <$> ((\r -> drop d $ scan (m r) xs) <$> rates))
 
 -- | common line chart hud with rates as a legend
 scanHud :: Double -> Text -> [Double] -> HudOptions
@@ -346,7 +342,7 @@ foldScanChart scan' fold' rates xs =
     (: []) $
         Chart
           (LineA defaultLineStyle)
-          (zipWith sp rates ((\r -> fold (fold' r) $ scan (scan' r) xs) <$> rates))
+          (zipWith P rates ((\r -> fold (fold' r) $ scan (scan' r) xs) <$> rates))
 
 zeroLineStyle :: LineStyle
 zeroLineStyle = defaultLineStyle & #color .~ (palette1!!7) & #width .~ 0.002
@@ -397,7 +393,7 @@ chartAny t = maybe (Left "<html>bad read</html>") Right . head . rights $
     tryChart t chartText1,
 
     -- just text FIXME: doesn't parse for escaped characters
-    tryChart ("\"" <> t <> "\"") (\x -> renderHudOptionsChart defaultSvgOptions mempty [] [Chart (TextA defaultTextStyle ["\"" <> x <> "\""]) [sp 0 0]])
+    tryChart ("\"" <> t <> "\"") (\x -> renderHudOptionsChart defaultSvgOptions mempty [] [Chart (TextA defaultTextStyle ["\"" <> x <> "\""]) [zero]])
   ]
 
 chartList2 :: [[Double]] -> Text
