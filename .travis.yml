@@ -14,6 +14,8 @@ matrix:
   allow_failures:
     - env: BUILD=werror
 
+addons: {apt: {packages: [libblas-dev, liblapack-dev, g++-4.8], sources: [ubuntu-toolchain-r-test]}}
+
 install:
 - |
       PATH=$HOME/.local/bin:$PATH
