@@ -5,9 +5,9 @@ packages:
 
 extra-deps:
   - backprop-0.2.6.4
-  - box-0.5.0
-  - box-csv-0.0.1
-  - box-socket-0.0.1
+  - box-0.6.0
+  - box-csv-0.0.2
+  - box-socket-0.0.2
   - chart-svg-0.1.2
   - numhask-0.6.0.2
   - numhask-array-0.7.0
@@ -15,4 +15,4 @@ extra-deps:
   - mealy-0.0.1
   - perf-0.7.0
   - vinyl-0.13.0
-  - web-rep-0.6.0
+  - web-rep-0.7.0
