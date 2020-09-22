@@ -41,6 +41,19 @@ defaultSConfig = SConfig 20 10 1 1 100
 run :: SConfig -> IO ()
 run c = serveSend c (defaultAnimation c)
 
+data Animation = Animation { freeze :: Double -> (HudOptions, [Chart Double]) }
+
+instance Semigroup Animation where
+  (<>) a b = Animation (\x -> (freeze a x) <> (freeze b x))
+
+instance Monoid Animation where
+  mempty = Animation (\_ -> (mempty,[]))
+  mappend = (<>)
+
+-- | charts
+frameStamp :: Animation
+frameStamp = Animation $ \x -> (mempty & #hudTitles .~ [defaultTitle (fixed (Just 3) x)], [])
+
 defaultAnimation :: SConfig -> Animation
 defaultAnimation c = mconcat $
     [ circle,
@@ -73,18 +86,19 @@ serveSend :: SConfig -> Animation -> IO ()
 serveSend cfg ani =
   serveSocketBox defaultSocketConfig chartPage . Box mempty <$.> chartEmitter cfg ani
 
-data Animation = Animation { freeze :: Double -> (HudOptions, [Chart Double]) }
+-- | serveSend (defaultSConfig & #frameRate .~ 1000) frameStamp
+serveCharts :: Emitter IO (HudOptions, [Hud Double], [Chart Double]) -> IO ()
+serveCharts e =
+  serveSocketBox defaultSocketConfig chartPage . Box mempty <$.> (pure (fmap toCodeText e))
 
-instance Semigroup Animation where
-  (<>) a b = Animation (\x -> (freeze a x) <> (freeze b x))
+-- | serveSend (defaultSConfig & #frameRate .~ 1000) frameStamp
+serveSvgText :: Emitter IO Text -> IO ()
+serveSvgText e =
+  serveSocketBox defaultSocketConfig chartPage . Box mempty <$.> (pure (fmap toCode e))
 
-instance Monoid Animation where
-  mempty = Animation (\_ -> (mempty,[]))
-  mappend = (<>)
-
--- | charts
-frameStamp :: Animation
-frameStamp = Animation $ \x -> (mempty & #hudTitles .~ [defaultTitle (fixed (Just 3) x)], [])
+toCode :: Text -> Text
+toCode t =
+  code (Replace "output" t)
 
 cleanHud :: Rect Double -> [Chart Double]
 cleanHud r = runHudWith r r (fst $ makeHud r defaultHudOptions) [Chart BlankA [RectXY r]]
@@ -118,6 +132,11 @@ outputText ani x =
   code (Replace "output"
    (renderHudOptionsChart defaultSvgOptions (fst $ freeze ani x) [] (snd $ freeze ani x)))
 
+toCodeText :: (HudOptions, [Hud Double], [Chart Double]) -> Text
+toCodeText (ho,hs,cs) =
+  code (Replace "output"
+   (renderHudOptionsChart defaultSvgOptions ho hs cs))
+
 -- | One of the joys of box is you get great support for adhoc low-level testing
 --
 -- > glue toStdout . fmap show <$.> carousel (defaultSConfig & #frameRate .~ 100)
@@ -136,6 +155,12 @@ delay t e = Emitter $ do
   t' <- emit t
   e' <- emit e
   fromMaybe (pure ()) (sleep <$> t')
+  pure e'
+
+delaySecs :: Double -> Emitter IO a -> Emitter IO a
+delaySecs t e = Emitter $ do
+  e' <- emit e
+  sleep t
   pure e'
 
 chartPage :: Page
