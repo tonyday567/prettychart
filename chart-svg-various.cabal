@@ -30,10 +30,12 @@ library
     -Wincomplete-uni-patterns
     -Wredundant-constraints
   build-depends:
+    JuicyPixels >= 3.3.5 && < 3.4,
     base >=4.7 && <5,
     box >= 0.6 && < 0.7,
     box-csv >= 0.0.2 && < 0.1,
     box-socket >= 0.0.2 && < 0.1,
+    bytestring >= 0.10 && < 0.11,
     chart-svg >= 0.1.1 && < 0.2,
     concurrency >= 1.11,
     foldl >= 1.4,
@@ -48,9 +50,11 @@ library
     transformers >= 0.5,
     unordered-containers,
     web-rep >= 0.7 && < 0.8,
+    vector >= 0.12 && < 0.13,
   exposed-modules:
     Chart.Serve
     Chart.Various
+    Chart.Image
   other-modules:
   default-language: Haskell2010
 

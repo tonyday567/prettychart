@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
@@ -10,4 +11,5 @@ main :: IO ()
 main =
   doctest
   [
+    "src/Chart/Image.hs"
   ]
