@@ -1,8 +1,8 @@
 cabal-version: 2.4
 name:          chart-svg-various
-version:       0.0.2
-synopsis: See readme.md
-description: See readme.md for description.
+version:       0.0.3
+synopsis: Various chart-svg extensions and defaults.
+description: A repository of chart-svg ideas, defaults and bric-a-brac that never made it to the main library.
 category: project
 author: Tony Day
 maintainer: tonyday567@gmail.com
@@ -31,6 +31,7 @@ library
     -Wredundant-constraints
   build-depends:
     JuicyPixels >= 3.3.5 && < 3.4,
+    attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
     box >= 0.6 && < 0.7,
     box-csv >= 0.0.2 && < 0.1,
@@ -41,10 +42,13 @@ library
     foldl >= 1.4,
     lucid,
     lens,
+    linear,
     numhask >= 0.6 && < 0.7,
     numhask-array >= 0.7 && < 0.8,
     numhask-space >= 0.6 && < 0.7,
     mealy >= 0.0.1 && < 0.1,
+    reanimate,
+    reanimate-svg,
     text >= 1.2 && < 1.3,
     time >= 1.9 && < 1.10,
     transformers >= 0.5,
@@ -53,30 +57,12 @@ library
     vector >= 0.12 && < 0.13,
   exposed-modules:
     Chart.Serve
+    Chart.Any
     Chart.Various
     Chart.Image
+    Chart.Reanimate
   other-modules:
   default-language: Haskell2010
-
-executable chart-svg-various
-  main-is: chart-svg-various.hs
-  hs-source-dirs: app
-  build-depends:
-    base >= 4.7 && < 5,
-    numhask >= 0.6 && < 0.7,
-    chart-svg-various
-  default-language: Haskell2010
-  default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
-  ghc-options:
-    -funbox-strict-fields
-    -fforce-recomp
-    -threaded
-    -rtsopts
-    -with-rtsopts=-N
 
 test-suite test
   type: exitcode-stdio-1.0
@@ -100,3 +86,48 @@ test-suite test
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+
+executable reanimate-example
+  main-is: reanimate-example.hs
+  hs-source-dirs:
+    app
+  build-depends:
+    attoparsec,
+    chart-svg-various,
+    JuicyPixels >= 3.3.5 && < 3.4,
+    base >=4.7 && <5,
+    box >= 0.6 && < 0.7,
+    box-csv >= 0.0.2 && < 0.1,
+    box-socket >= 0.0.2 && < 0.1,
+    bytestring >= 0.10 && < 0.11,
+    chart-svg >= 0.1.1 && < 0.2,
+    concurrency >= 1.11,
+    foldl >= 1.4,
+    lucid,
+    lens,
+    linear,
+    numhask >= 0.6 && < 0.7,
+    numhask-array >= 0.7 && < 0.8,
+    numhask-space >= 0.6 && < 0.7,
+    mealy >= 0.0.1 && < 0.1,
+    reanimate,
+    reanimate-svg,
+    text >= 1.2 && < 1.3,
+    time >= 1.9 && < 1.10,
+    transformers >= 0.5,
+    unordered-containers,
+    web-rep >= 0.7 && < 0.8,
+    vector >= 0.12 && < 0.13,
+  default-language: Haskell2010
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -funbox-strict-fields

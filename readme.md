@@ -9,3 +9,10 @@ flow
 ```
 stack build --test --file-watch
 ```
+
+For the reanimate example.
+
+```
+stack runghc app/reanimate-example.hs
+```
+

@@ -15,3 +15,8 @@ extra-deps:
   - mealy-0.0.1
   - vinyl-0.13.0
   - web-rep-0.7.0
+  - reanimate-1.1.1.0
+  - reanimate-svg-0.13.0.0
+  - hgeometry-0.11.0.0
+  - hgeometry-combinatorial-0.11.0.0
+
