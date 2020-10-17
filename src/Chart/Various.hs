@@ -1,12 +1,12 @@
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+-- | Various common [chart-svg](http://hackage.haskell.org/package/chart-svg) patterns.
 module Chart.Various
-  ( -- * various common sub-chart patterns
-    defaultRender,
+  ( -- * sub-chart patterns
     xify,
     xify',
     yify,
@@ -22,7 +22,7 @@ module Chart.Various
     gpaletteStyle,
     blendMidLineStyles,
 
-    -- * generic charts
+    -- * chart patterns
     quantileChart,
     digitChart,
     scatterChart,
@@ -30,34 +30,16 @@ module Chart.Various
     quantileHistChart,
     digitPixelChart,
     tableChart,
-
-    -- * scanner charts
-    scanChart,
-    scanHud,
-    foldScanChart,
-    scannerChart,
-    scannersChart,
-    tsRatesHud,
-
-  ) where
+  )
+where
 
 import Chart
-import NumHask.Prelude hiding (fold)
 import Control.Lens
-import qualified Data.List as List
-import Data.Time (UTCTime(..))
-import Data.List ((!!))
-import Data.Mealy
-import NumHask.Space
 import qualified Data.HashMap.Strict as HashMap
-
-defaultRender :: SvgOptions -> (HudOptions, [Chart Double]) -> Text
-defaultRender svgo (h, c) = renderHudOptionsChart svgo h [] c
-
-taker :: Int -> [a] -> [a]
-taker n = reverse . take n . reverse
-
-type Rate = Double
+import Data.List ((!!))
+import Data.Time (UTCTime (..))
+import NumHask.Prelude hiding (fold)
+import NumHask.Space
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]
@@ -97,38 +79,42 @@ addLineY x ls cs = cs <> [zeroLine]
 stdLineChart :: Double -> [Colour] -> [[Double]] -> [Chart Double]
 stdLineChart w p xss =
   zipWith
-  (\c xs -> Chart (LineA (defaultLineStyle & #color .~ c & #width .~ w))
-    (xify' xs))
-  p
-  xss
+    ( \c xs ->
+        Chart
+          (LineA (defaultLineStyle & #color .~ c & #width .~ w))
+          (xify' xs)
+    )
+    p
+    xss
 
 -- | Can of the main palette
 stdLines :: Double -> [LineStyle]
 stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1
 
+-- | Legend template for a line chart.
 lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Annotation, Text)])
 lineLegend w rs cs =
-      ( defaultLegendOptions
-        & #ltext . #size .~ 0.3
-        & #lplace .~ PlaceBottom
-        & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) white),
-        zipWith
-        (\a r -> (LineA a, r))
-        ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
-        rs
-      )
+  ( defaultLegendOptions
+      & #ltext . #size .~ 0.3
+      & #lplace .~ PlaceBottom
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) white),
+    zipWith
+      (\a r -> (LineA a, r))
+      ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
+      rs
+  )
 
--- Create a hud that has time as the x-axis, based on supplied days, and a rounded yaxis.
+-- | Create a hud that has time as the x-axis, based on supplied days, and a rounded yaxis.
 tsAxes :: [UTCTime] -> [AxisOptions]
 tsAxes ds =
   [ defaultAxisOptions
-    & #atick . #tstyle .~ TickRound (FormatPrec (Just 3)) 6 TickExtend
-    & #place .~ PlaceLeft,
+      & #atick . #tstyle .~ TickRound (FormatPrec (Just 3)) 6 TickExtend
+      & #place .~ PlaceLeft,
     defaultAxisOptions & #atick . #tstyle
-    .~ TickPlaced
-    ( first fromIntegral
-      <$> makeTickDates PosIncludeBoundaries Nothing 8 ds
-    )
+      .~ TickPlaced
+        ( first fromIntegral
+            <$> makeTickDates PosIncludeBoundaries Nothing 8 ds
+        )
   ]
 
 -- | common pattern of chart title, x-axis title and y-axis title
@@ -141,9 +127,11 @@ titlesHud t x y =
          defaultTitle y & #place .~ PlaceLeft & #style . #size .~ 0.08
        ]
 
+-- | GlyphStyle palette
 gpaletteStyle :: Double -> [GlyphStyle]
 gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ c & #shape .~ fst g & #borderSize .~ snd g) palette1 gpalette
 
+-- | Glyph palette
 gpalette :: [(GlyphShape, Double)]
 gpalette =
   [ (CircleGlyph, 0.01 :: Double),
@@ -158,11 +146,13 @@ gpalette =
   ]
 
 -- * charts
+
+-- | Chart template for quantiles.
 quantileChart ::
   Text ->
   [Text] ->
   [LineStyle] ->
-  [AxisOptions] -> 
+  [AxisOptions] ->
   [[Double]] ->
   (HudOptions, [Chart Double])
 quantileChart title names ls as xs =
@@ -183,9 +173,12 @@ quantileChart title names ls as xs =
           )
         & #hudAxes .~ as
     chart' =
-      zipWith (\l c -> Chart (LineA l) c) ls
-      (zipWith P [0 ..] <$> xs)
+      zipWith
+        (\l c -> Chart (LineA l) c)
+        ls
+        (zipWith P [0 ..] <$> xs)
 
+-- | /blendMidLineStyle n w/ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
 blendMidLineStyles l w (c1, c2) = lo
   where
@@ -207,10 +200,16 @@ digitChart title utcs xs =
       defaultHudOptions
         & #hudTitles .~ [defaultTitle title]
         & #hudAxes .~ tsAxes utcs
-    c = Chart (GlyphA (defaultGlyphStyle &
-                        #color .~ Colour 0 0 1 1 &
-                        #shape .~ CircleGlyph & #size .~ 0.01))
-             (xify' xs)
+    c =
+      Chart
+        ( GlyphA
+            ( defaultGlyphStyle
+                & #color .~ Colour 0 0 1 1
+                & #shape .~ CircleGlyph
+                & #size .~ 0.01
+            )
+        )
+        (xify' xs)
 
 -- | scatter chart
 scatterChart ::
@@ -228,13 +227,14 @@ histChart ::
   (HudOptions, [Chart Double])
 histChart title names r g xs =
   barChart defaultBarOptions barData
-  & first (#hudTitles .~ [defaultTitle title])
+    & first (#hudTitles .~ [defaultTitle title])
   where
     barData = BarData [hr] names Nothing
     hcuts = grid OuterPos r g
     h = fill hcuts xs
-    hr = (\(Rect x x' _ _) -> (x+x')/2) <$>
-      makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
+    hr =
+      (\(Rect x x' _ _) -> (x + x') / 2)
+        <$> makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
 
 -- | a chart drawing a histogram based on quantile information
 quantileHistChart ::
@@ -253,8 +253,9 @@ quantileHistChart title names qs vs = (hudOptions, [chart'])
         .~ [defaultTitle title]
         & #hudAxes
         .~ [ maybe
-               (defaultAxisOptions & #atick . #tstyle .~
-                TickRound (FormatPrec (Just 3)) 8 TickExtend)
+               ( defaultAxisOptions & #atick . #tstyle
+                   .~ TickRound (FormatPrec (Just 3)) 8 TickExtend
+               )
                ( \x ->
                    defaultAxisOptions & #atick . #tstyle
                      .~ TickPlaced (zip vs x)
@@ -263,9 +264,10 @@ quantileHistChart title names qs vs = (hudOptions, [chart'])
            ]
     chart' = Chart (RectA defaultRectStyle) (RectXY <$> hr)
     hr =
-      zipWith (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
-      (zip qs (drop 1 qs))
-      (zip vs (drop 1 vs))
+      zipWith
+        (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
+        (zip qs (drop 1 qs))
+        (zip vs (drop 1 vs))
 
 -- | pixel chart of digitized vs digitized counts
 digitPixelChart ::
@@ -314,57 +316,6 @@ makeTitles (t, xt, yt) =
       defaultTitle yt & #place .~ PlaceLeft & #style . #size .~ 0.06
     ]
 
+-- | Chart for double list of Text.
 tableChart :: [[Text]] -> [Chart Double]
-tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0..])) tss [0..]
-
--- * scanners
--- | simple scan of a time series through a Mealy using a list of rates, with time dimension of [0..]
-scanChart :: (Rate -> Mealy a Double) -> [Rate] -> Int -> [a] -> [Chart Double]
-scanChart m rates d xs =
-  zipWith (\s xs' -> Chart (LineA s) xs')
-  (stdLines 0.003)
-  (zipWith P (fromIntegral <$> [d..]) <$> ((\r -> drop d $ scan (m r) xs) <$> rates))
-
--- | common line chart hud with rates as a legend
-scanHud :: Double -> Text -> [Double] -> HudOptions
-scanHud w t rates = 
-  defaultHudOptions &
-     #hudTitles .~ [ defaultTitle t] &
-     #hudLegend .~ Just (lineLegend w (("rate = " <>) . show <$> rates) palette1)
-
--- | fold over a scanned time series by rates
-foldScanChart :: (Rate -> Mealy a b) -> (Rate -> Mealy b Double) -> [Rate] -> [a] -> [Chart Double]
-foldScanChart scan' fold' rates xs =
-    (: []) $
-        Chart
-          (LineA defaultLineStyle)
-          (zipWith P rates ((\r -> fold (fold' r) $ scan (scan' r) xs) <$> rates))
-
-zeroLineStyle :: LineStyle
-zeroLineStyle = defaultLineStyle & #color .~ (palette1!!7) & #width .~ 0.002
-
--- | take a decaying scanner, a list of decay rates, and create linecharts from an [a]
-scannerChart :: Int -> [Double] -> (Double -> [a] -> [Double]) -> [a] -> [Chart Double]
-scannerChart n rs rscan xs =
-  addLineX 0 zeroLineStyle $
-  stdLineChart 0.005 palette1 (tsrs n rs rscan xs)
-  where
-    tsrs n rs rscan xs = taker n . (`rscan` xs) <$> rs
-
--- | take a multi-decaying scanner, a decay rate, and create linecharts from an [a]
-scannersChart :: Int -> Double -> (Double -> [a] -> [[Double]]) -> [a] -> [Chart Double]
-scannersChart n r rscan xs =
-  addLineX 0 zeroLineStyle $
-  stdLineChart 0.005 palette1 (tsrs n r rscan xs)
-  where
-    tsrs n r rscan xs = taker n <$> (List.transpose $ rscan r xs)
-
--- | a Hud for time series with a rates legend
-tsRatesHud :: Text -> [Double] -> [UTCTime] -> HudOptions
-tsRatesHud title rs ds =
-  defaultHudOptions
-    & #hudTitles
-    .~ [defaultTitle title & #style . #size .~ 0.08]
-    & #hudLegend
-    .~ Just (lineLegend 0.001 ((("rate: " <>) . show) <$> rs) palette1)
-    & #hudAxes .~ tsAxes ds
+tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0 ..])) tss [0 ..]

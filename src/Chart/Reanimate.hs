@@ -1,43 +1,46 @@
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{- | Read some text, and attempt to make default charts.
-
--}
-module Chart.Reanimate where
+-- | Integration of reanimate and chart-svg
+module Chart.Reanimate
+  ( fromHudOptionsChart,
+    fromHudChart,
+    fromChartsWith,
+    renderToDocument,
+    tree,
+    toPixelRGBA8,
+  )
+where
 
 import Chart
-import NumHask.Prelude hiding (fold)
-import Control.Lens hiding (transform)
-import Graphics.SvgTree.Types hiding (Text, Point)
-import qualified Graphics.SvgTree.Types as Svg
--- import Reanimate.Animation
--- import Reanimate hiding (scale)
-import Linear.V2
 import Codec.Picture.Types
-import Graphics.SvgTree.PathParser
+import Control.Lens hiding (transform)
 import qualified Data.Attoparsec.Text as A
+import Graphics.SvgTree.PathParser
+import Graphics.SvgTree.Types hiding (Point, Text)
+import Linear.V2
+import NumHask.Prelude hiding (fold)
 
--- * color conversions
+-- | Convert to reanimate color primitive.
 toPixelRGBA8 :: Colour -> PixelRGBA8
 toPixelRGBA8 (Colour r g b o) =
   PixelRGBA8
-  (fromIntegral $ (floor $ r * 256 :: Int))
-  (fromIntegral $ (floor $ g * 256 :: Int))
-  (fromIntegral $ (floor $ b * 256 :: Int))
-  (fromIntegral $ (floor $ o * 256 :: Int))
+    (fromIntegral $ (floor $ r * 256 :: Int))
+    (fromIntegral $ (floor $ g * 256 :: Int))
+    (fromIntegral $ (floor $ b * 256 :: Int))
+    (fromIntegral $ (floor $ o * 256 :: Int))
 
--- | Render a chart using the supplied svg and hud config.
+-- | Render a chart to a 'Document' using the supplied svg and hud config.
 fromHudOptionsChart :: SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> Document
 fromHudOptionsChart so hc hs cs = fromHudChart so (hs <> hs') (cs <> cs')
   where
     (hs', cs') = makeHud (fixRect $ dataBox cs) hc
 
--- | Render some huds and charts.
+-- | Render some huds and charts to a 'Document'.
 fromHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Document
 fromHudChart so hs cs = fromChartsWith so (runHud (getViewbox so cs) hs cs)
 
@@ -69,6 +72,7 @@ renderToDocument (Point w' h') vb cs =
     (PreserveAspectRatio False AlignNone Nothing)
 
 -- * svg primitives
+
 -- | convert a point to the svg co-ordinate system
 -- The svg coordinate system has the y-axis going from top to bottom.
 pointSvg :: (Real a) => Point a -> (Number, Number)
@@ -79,12 +83,6 @@ rotatePDA :: (Real a, HasDrawAttributes s) => a -> Point a -> s -> s
 rotatePDA a (Point x y) s = s & transform %~ (Just . maybe r (<> r))
   where
     r = [Rotate (realToFrac a) (Just (realToFrac x, - realToFrac y))]
-
--- | A DrawAttributes to rotate by x degrees.
-rotateDA :: (Real a, HasDrawAttributes s) => a -> s -> s
-rotateDA a s = s & transform %~ (Just . maybe r (<> r))
-  where
-    r = [Rotate (realToFrac a) Nothing]
 
 -- | A DrawAttributes to translate by a Point.
 translateDA :: (Real a, HasDrawAttributes s) => Point a -> s -> s
@@ -111,8 +109,8 @@ treeRect a =
 -- | Text svg
 treeText :: TextStyle -> Text -> Point Double -> Tree
 treeText s t p =
-  TextTree Nothing (textAt (pointSvg p) t) &
-  maybe id (\x -> drawAttributes %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
+  TextTree Nothing (textAt (pointSvg p) t)
+    & maybe id (\x -> drawAttributes %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
 
 -- | GlyphShape to svg Tree
 treeShape :: GlyphShape -> Double -> Point Double -> Tree
@@ -158,7 +156,7 @@ treeShape (HLineGlyph x') s (Point x y) =
 treeShape (PathGlyph path) _ p =
   PathTree $ Path ((drawAttributes %~ translateDA p) defaultSvg) path'
   where
-    path' = either mempty (:[]) $ A.parseOnly command path
+    path' = either mempty (: []) $ A.parseOnly command path
 
 -- | GlyphStyle to svg Tree
 treeGlyph :: (Fractional a, Real a) => GlyphStyle -> Point a -> Tree
@@ -176,15 +174,15 @@ treeLine xs =
 -- | convert a Chart to svg
 tree :: Chart Double -> Tree
 tree (Chart (TextA s ts) xs) =
-  groupTrees (dagText s) (zipWith (treeText s) ts (toPoint <$> xs))
+  groupTrees (daText s) (zipWith (treeText s) ts (toPoint <$> xs))
 tree (Chart (GlyphA s) xs) =
-  groupTrees (dagGlyph s) (treeGlyph s . toPoint <$> xs)
+  groupTrees (daGlyph s) (treeGlyph s . toPoint <$> xs)
 tree (Chart (LineA s) xs) =
-  groupTrees (dagLine s) [treeLine (toPoint <$> xs)]
+  groupTrees (daLine s) [treeLine (toPoint <$> xs)]
 tree (Chart (RectA s) xs) =
-  groupTrees (dagRect s) (treeRect <$> (toRect <$> xs))
+  groupTrees (daRect s) (treeRect <$> (toRect <$> xs))
 tree (Chart (PixelA s) xs) =
-  groupTrees (dagPixel s) (treeRect <$> (toRect <$> xs))
+  groupTrees (daPixel s) (treeRect <$> (toRect <$> xs))
 tree (Chart BlankA _) =
   groupTrees mempty []
 
@@ -194,49 +192,8 @@ groupTrees da' tree' =
   GroupTree (drawAttributes %~ (<> da') $ groupChildren .~ tree' $ defaultSvg)
 
 -- * DrawAttribute computations
-
--- | the extra Rect from the stroke element of an svg style attribute
-strokeRect :: DrawAttributes -> Rect Double -> Rect Double
-strokeRect das r = r + (realToFrac <$> Rect (- x / 2) (x / 2) (- x / 2) (x / 2))
-  where
-    x = case das ^. Svg.strokeWidth & getLast of
-      Just (Num x') -> x'
-      _ -> 0
-
-data NotYetImplementedException = NotYetImplementedException deriving (Show)
-
-instance Exception NotYetImplementedException
-
-transformRect :: XY Double -> DrawAttributes -> Rect Double -> Rect Double
-transformRect sp da r =
-  realToFrac
-    <$> foldl'
-      addtr
-      (realToFrac <$> r)
-      (fromMaybe [] (da ^. transform))
-  where
-    (Point x y) = realToFrac <$> toPoint sp
-    addtr r' t = case t of
-      Translate x' y' -> move (Point x' (- y')) r'
-      TransformMatrix {} ->
-        throw NotYetImplementedException
-      Scale s Nothing -> (s *) <$> r'
-      Scale sx (Just sy) -> scale (Point sx sy) r'
-      Rotate d Nothing ->
-        rotateRect
-          d
-          ( realToFrac
-              <$> move
-                (Point (- x) (- y))
-                (realToFrac <$> r')
-          )
-      Rotate d (Just (x', y')) -> rotateRect d (move (Point (x' - x) (y' - y)) (realToFrac <$> r'))
-      SkewX _ -> throw NotYetImplementedException
-      SkewY _ -> throw NotYetImplementedException
-      TransformUnknown -> r'
-
-dagRect :: RectStyle -> DrawAttributes
-dagRect o =
+daRect :: RectStyle -> DrawAttributes
+daRect o =
   mempty
     & (strokeWidth .~ Last (Just $ Num (realToFrac $ o ^. #borderSize)))
     . (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor)))
@@ -244,17 +201,16 @@ dagRect o =
     . (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
     . (fillOpacity ?~ realToFrac (opac $ o ^. #color))
 
-dagPixel :: PixelStyle -> DrawAttributes
-dagPixel o =
+daPixel :: PixelStyle -> DrawAttributes
+daPixel o =
   mempty
     & (strokeWidth .~ Last (Just $ Num (realToFrac $ o ^. #pixelRectStyle . #borderSize)))
     . (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #pixelRectStyle . #borderColor)))
     . (strokeOpacity ?~ realToFrac (opac $ o ^. #pixelRectStyle . #borderColor))
     . (fillColor .~ Last (Just $ TextureRef (unpack $ o ^. #pixelTextureId)))
 
--- | group draw attributes for TextStyle. rotation is defined by svg relative to a point (or to an origin) and so rotation needs to be dealth with separately.
-dagText :: () => TextStyle -> DrawAttributes
-dagText o =
+daText :: () => TextStyle -> DrawAttributes
+daText o =
   mempty
     & (fontSize .~ Last (Just $ Num (o ^. #size)))
     & (strokeWidth .~ Last (Just $ Num 0))
@@ -272,8 +228,8 @@ dagText o =
     toTextAnchor AnchorStart = TextAnchorStart
     toTextAnchor AnchorEnd = TextAnchorEnd
 
-dagGlyph :: GlyphStyle -> DrawAttributes
-dagGlyph o =
+daGlyph :: GlyphStyle -> DrawAttributes
+daGlyph o =
   mempty
     & (strokeWidth .~ Last (Just $ Num (o ^. #borderSize)))
     & (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor)))
@@ -285,11 +241,10 @@ dagGlyph o =
       (\(Point x y) -> transform ?~ [Translate (realToFrac x) (- realToFrac y)])
       (o ^. #translate)
 
-dagLine :: LineStyle -> DrawAttributes
-dagLine o =
+daLine :: LineStyle -> DrawAttributes
+daLine o =
   mempty
     & (strokeWidth .~ Last (Just $ Num (o ^. #width)))
     . (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
     . (strokeOpacity ?~ realToFrac (opac $ o ^. #color))
     . (fillColor .~ Last (Just FillNone))
-
