@@ -1,6 +1,17 @@
 #!/usr/bin/env stack
 -- stack runghc --package reanimate
 
+{- | reanimate example
+
+To run this:
+
+cd app
+stack runghc --package reanimate ./reanimate-example.hs
+
+and wait for the browser to open ...
+
+-}
+
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 

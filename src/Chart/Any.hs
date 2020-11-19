@@ -40,7 +40,7 @@ chartAny t =
         t
         ( \xs ->
             bool
-              (let (h, c) = barChart defaultBarOptions (BarData [xs] Nothing Nothing) in renderHudOptionsChart defaultSvgOptions h [] c)
+              (let (h, c) = barChart defaultBarOptions (BarData [xs] Nothing Nothing) in chartSvg (mempty & #hudOptions .~ h & #chartList .~ c))
               (anyLineChart [xs])
               (length xs > 10)
         ),
@@ -53,7 +53,7 @@ chartAny t =
       tryChart t anyTextChart,
       tryChart t chartText1,
       -- just text FIXME: doesn't parse for escaped characters
-      tryChart ("\"" <> t <> "\"") (\x -> renderHudOptionsChart defaultSvgOptions mempty [] [Chart (TextA defaultTextStyle ["\"" <> x <> "\""]) [zero]])
+      tryChart ("\"" <> t <> "\"") (\x -> chartSvgDefault [Chart (TextA defaultTextStyle ["\"" <> x <> "\""]) [zero]])
     ]
 
 -- | Attempt to read chart data and write to file.
@@ -70,7 +70,7 @@ chartList2 xss
   | (length xss < 4) && (length (xss !! 0) < 10) = anyBarChart xss
   -- square
   | all (length xss ==) (length <$> xss) =
-    anyPixelChart xss
+    anySurfaceChart xss
   | otherwise = anyLineChart xss
 
 -- | Default text chart.
@@ -84,7 +84,7 @@ chartText1 xs
 
 -- | Bar chart for a double list.
 anyBarChart :: [[Double]] -> Text
-anyBarChart xss = renderHudOptionsChart defaultSvgOptions h [] c
+anyBarChart xss = chartSvg (mempty & #hudOptions .~ h & #chartList .~ c)
   where
     (h, c) =
       barChart
@@ -100,7 +100,7 @@ anyBarChart xss = renderHudOptionsChart defaultSvgOptions h [] c
 
 -- | Bar chart for a labelled list.
 anySingleNamedBarChart :: [(Text, Double)] -> Text
-anySingleNamedBarChart xs = renderHudOptionsChart defaultSvgOptions h [] c
+anySingleNamedBarChart xs = chartSvg (mempty & #hudOptions .~ h & #chartList .~ c)
   where
     (h, c) =
       barChart
@@ -114,32 +114,32 @@ anySingleNamedBarChart xs = renderHudOptionsChart defaultSvgOptions h [] c
 -- | Default line chart for a double list
 anyLineChart :: [[Double]] -> Text
 anyLineChart xss =
-  renderHudOptionsChart defaultSvgOptions defaultHudOptions [] (stdLineChart 0.02 palette1 xss)
+  chartSvgHud (stdLineChart 0.02 palette1 xss)
 
 -- | Default scatter chart for paired data
 anyScatterChart :: [[(Double, Double)]] -> Text
 anyScatterChart xss =
-  renderHudOptionsChart defaultSvgOptions defaultHudOptions [] (scatterChart (fmap (fmap (uncurry Point)) xss))
+  chartSvgHud (scatterChart (fmap (fmap (uncurry Point)) xss))
 
 -- | Default text chart for double list.
 anyTextChart :: [[Text]] -> Text
 anyTextChart xss =
-  renderHudOptionsChart defaultSvgOptions defaultHudOptions [] (tableChart xss)
+  chartSvgHud (tableChart xss)
 
 -- | Default pixel chart for double list.
-anyPixelChart :: [[Double]] -> Text
-anyPixelChart xss = renderHudOptionsChart defaultSvgOptions (anyPixelHud nx ny) h c
+anySurfaceChart :: [[Double]] -> Text
+anySurfaceChart xss = chartSvg (ChartSvg defaultSvgOptions (anySurfaceHud nx ny) h c)
   where
     (c, h) =
-      pixelfl
+      surfacefl
         (\(Point x y) -> ((xss !! (floor x)) !! (floor y)))
-        (PixelOptions defaultPixelStyle (Point nx ny) (Rect 0 (fromIntegral nx :: Double) 0 (fromIntegral ny)))
-        (defaultPixelLegendOptions "square")
+        (SurfaceOptions defaultSurfaceStyle (Point nx ny) (Rect 0 (fromIntegral nx :: Double) 0 (fromIntegral ny)))
+        (defaultSurfaceLegendOptions "square")
     nx = length xss
     ny = length (xss !! 0)
 
-anyPixelHud :: Int -> Int -> HudOptions
-anyPixelHud nx ny =
+anySurfaceHud :: Int -> Int -> HudOptions
+anySurfaceHud nx ny =
   defaultHudOptions
     & #hudAxes
       .~ [ defaultAxisOptions

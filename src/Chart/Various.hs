@@ -4,7 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
--- | Various common [chart-svg](http://hackage.haskell.org/package/chart-svg) patterns.
+-- | Various common chart patterns.
 module Chart.Various
   ( -- * sub-chart patterns
     xify,
@@ -28,7 +28,7 @@ module Chart.Various
     scatterChart,
     histChart,
     quantileHistChart,
-    digitPixelChart,
+    digitSurfaceChart,
     tableChart,
   )
 where
@@ -46,7 +46,7 @@ xify :: [Double] -> [Point Double]
 xify ys =
   zipWith Point [0 ..] ys
 
--- | convert from [a] to [SpotPoint a], by adding the index as the x axis
+-- | convert from [a] to [XY a], by adding the index as the x axis
 xify' :: [Double] -> [XY Double]
 xify' ys =
   zipWith P [0 ..] ys
@@ -56,7 +56,7 @@ yify :: [Double] -> [Point Double]
 yify xs =
   zipWith Point xs [0 ..]
 
--- | convert from [a] to [SpotPoint a], by adding the index as the y axis
+-- | convert from [a] to [XY a], by adding the index as the y axis
 yify' :: [Double] -> [XY Double]
 yify' xs =
   zipWith P xs [0 ..]
@@ -168,10 +168,12 @@ quantileChart title names ls as xs =
                     & #vgap .~ 0.05
                     & #innerPad .~ 0.2
                     & #lplace .~ PlaceRight,
-                  legendFromChart names chart'
+                  extractAnns names chart'
                 )
           )
         & #hudAxes .~ as
+    extractAnns = zipWith (\t c -> (c ^. #annotation, t))
+
     chart' =
       zipWith
         (\l c -> Chart (LineA l) c)
@@ -187,7 +189,7 @@ blendMidLineStyles l w (c1, c2) = lo
     bs = (\x -> blend x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #width .~ w & #color .~ c) <$> bs
 
--- | a chart showing a time series of digitized values (eg this return was a 30th percentile)
+-- | FIXME: better name
 digitChart ::
   Text ->
   [UTCTime] ->
@@ -270,14 +272,14 @@ quantileHistChart title names qs vs = (hudOptions, [chart'])
         (zip vs (drop 1 vs))
 
 -- | pixel chart of digitized vs digitized counts
-digitPixelChart ::
-  PixelStyle ->
-  PixelLegendOptions ->
+digitSurfaceChart ::
+  SurfaceStyle ->
+  SurfaceLegendOptions ->
   (Text, Text, Text) ->
   [Text] ->
   [(Int, Int)] ->
   [Chart Double]
-digitPixelChart pixelStyle plo ts names ps =
+digitSurfaceChart pixelStyle plo ts names ps =
   runHud (aspect 1) (hs0 <> hs1) (cs0 <> cs1)
   where
     l = length names
@@ -286,12 +288,12 @@ digitPixelChart pixelStyle plo ts names ps =
     gr = fromIntegral <$> Rect 0 l 0 l
     mapCount = foldl' (\m x -> HashMap.insertWith (+) x 1.0 m) HashMap.empty ps
     f :: Point Double -> Double
-    f (Point x y) = fromMaybe 0 $ HashMap.lookup (fromIntegral (floor x :: Integer), fromIntegral (floor y :: Integer)) mapCount
+    f (Point x y) = fromMaybe 0 $ HashMap.lookup (floor x, floor y) mapCount
     (hs0, cs0) = makeHud gr (qvqHud ts names)
     (cs1, hs1) =
-      pixelfl
+      surfacefl
         f
-        (PixelOptions pixelStyle pts gr)
+        (SurfaceOptions pixelStyle pts gr)
         plo
 
 -- style helpers
@@ -319,3 +321,4 @@ makeTitles (t, xt, yt) =
 -- | Chart for double list of Text.
 tableChart :: [[Text]] -> [Chart Double]
 tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0 ..])) tss [0 ..]
+

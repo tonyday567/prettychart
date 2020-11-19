@@ -11,6 +11,5 @@ main :: IO ()
 main =
   doctest
   [
-    "src/Chart/Image.hs",
     "src/Chart/Any.hs"
   ]
