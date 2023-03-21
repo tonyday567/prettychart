@@ -1,0 +1,6 @@
+packages:
+  chart-svg-various.cabal
+  ../mealy/mealy.cabal
+  ../chart-svg/chart-svg.cabal
+
+-- allow-newer: true

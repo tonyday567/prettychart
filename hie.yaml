@@ -1,8 +1,0 @@
-cradle:
-  stack:
-    - path: "./app/chart-svg-various.hs"
-      component: "chart-svg-various:exe:chart-svg-various"
-    - path: "./src"
-      component: "chart-svg-various:lib"
-    - path: "./test/chart-svg-various.hs"
-      component: "chart-svg-various:test:chart-svg-various"

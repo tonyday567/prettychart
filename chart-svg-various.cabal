@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name:          chart-svg-various
-version:       0.0.3
+version:       0.1.0
 synopsis: Various chart-svg extensions and defaults.
 description: A repository of chart-svg ideas, defaults and bric-a-brac that never made it to the main library.
 category: project
@@ -16,6 +16,7 @@ extra-doc-files:
 source-repository head
   type: git
   location: https://github.com/tonyday567/chart-svg-various
+
 library
   hs-source-dirs:
     src
@@ -31,52 +32,27 @@ library
     -Wincomplete-uni-patterns
     -Wredundant-constraints
   build-depends:
-    JuicyPixels >= 3.3.5 && < 3.4,
-    attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
-    bytestring >= 0.10 && < 0.11,
-    chart-svg >= 0.2 && < 0.3,
-    concurrency >= 1.11,
-    foldl >= 1.4,
-    lucid,
-    lens,
-    linear,
-    numhask >= 0.6 && < 0.7,
-    numhask-array >= 0.7 && < 0.8,
-    numhask-space >= 0.6 && < 0.7,
-    mealy >= 0.0.1 && < 0.1,
-    text >= 1.2 && < 1.3,
-    time >= 1.9 && < 1.10,
+    bytestring,
+    chart-svg >= 0.4,
+    optics-core,
+    numhask,
+    numhask-array,
+    numhask-space,
+    mealy,
+    text >= 1.2 && < 2.1,
+    time >= 1.9,
     transformers >= 0.5,
-    unordered-containers,
     vector >= 0.12 && < 0.13,
+    flatparse,
+    containers,
+    profunctors,
+    formatn
   exposed-modules:
     Chart.Any
+    Chart.Various.Examples
     Chart.Mealy
     Chart.Various
   other-modules:
   default-language: Haskell2010
-
-test-suite test
-  type: exitcode-stdio-1.0
-  main-is: test.hs
-  hs-source-dirs:
-    test
-  build-depends:
-    base >=4.7 && <5,
-    doctest,
-    numhask >= 0.6 && < 0.7,
-    chart-svg-various
-  default-language: Haskell2010
-  default-extensions:
-    NoImplicitPrelude
-    NegativeLiterals
-    OverloadedStrings
-    UnicodeSyntax
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
 

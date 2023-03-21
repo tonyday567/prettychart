@@ -1,0 +1,108 @@
+
+* chart-svg-various
+
+[[https://hackage.haskell.org/package/chart-svg-various][https://img.shields.io/hackage/v/chart-svg-various.svg]]
+[[https://github.com/tonyday567/chart-svg-various/actions?query=workflow%3Ahaskell-ci][https://github.com/tonyday567/chart-svg-various/workflows/haskell-ci/badge.svg]]
+
+
+
+
+* Usage
+
+#+begin_src haskell :results output
+import Chart.Any
+import Chart.Various
+import Chart.Examples
+#+end_src
+
+* Development
+
+#+begin_src haskell :results output
+:r
+:set prompt "> "
+:set -Wno-type-defaults
+:set -Wno-name-shadowing
+:set -XOverloadedStrings
+:set -XOverloadedLabels
+import qualified Prelude
+import Chart
+import Optics.Core
+import Chart.Various
+import Chart.Any
+import Chart.Various.Examples
+import FlatParse.Basic hiding (take)
+import Data.Time.Calendar
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C
+import Data.Mealy
+import Data.Profunctor
+import Data.Maybe
+import Data.Bifunctor
+import NumHask.Prelude
+import NumHask.Space
+import qualified Data.Map as Map
+import Data.FormatN
+import qualified Data.Text as Text
+#+end_src
+
+#+RESULTS:
+: [4 of 4] Compiling Chart.Various.Examples ( src/Chart/Various/Examples.hs, interpreted ) [Flags changed]
+: Ok, four modules loaded.
+: >
+
+#+begin_src haskell :results output
+r <- getReturns
+length r
+take 10 r
+#+end_src
+
+#+RESULTS:
+: 10897
+: [(1980-01-02,-1.9654e-2),(1980-01-03,-5.687e-3),(1980-01-04,1.2282e-2),(1980-01-07,2.813e-3),(1980-01-08,1.9472e-2),(1980-01-09,1.835e-3),(1980-01-10,7.306e-3),(1980-01-11,0.0),(1980-01-14,4.539e-3),(1980-01-15,6.321e-3)]
+
+
+
+- simplest possible charts
+
+** line chart of cumulative return
+
+- [ ] date on x axis
+- [ ] title & subtitles
+- [ ] percent format on y axis
+
+#+begin_src haskell
+accret = scan (second' (dipure (+))) r
+take 10 accret
+#+end_src
+
+#+RESULTS:
+| 1980-01-02 |             -0.019654 |
+| 1980-01-03 | -0.025341000000000002 |
+| 1980-01-04 | -0.013059000000000003 |
+| 1980-01-07 | -0.010246000000000003 |
+| 1980-01-08 |  0.009225999999999996 |
+| 1980-01-09 |  0.011060999999999996 |
+| 1980-01-10 |  0.018366999999999994 |
+| 1980-01-11 |  0.018366999999999994 |
+| 1980-01-14 |  0.022905999999999996 |
+| 1980-01-15 |  0.029226999999999996 |
+
+
+#+begin_src haskell :file other/accret.svg :results output graphics file :exports both
+s = defaultLineStyle & #color .~ palette1 2 & #size .~ 0.0015
+c = LineChart s [xify (snd <$> accret)]
+h = defaultHudOptions & #titles .~ undefined
+accretChart = mempty & #charts .~ named "accret" [c] & #hudOptions .~ h
+writeChartOptions "other/accret.svg" accretChart
+#+end_src
+
+#+RESULTS:
+[[file:other/accret.svg]]
+
+
+
+#+begin_src haskell
+writeChartOptions "other/accret.svg" $ mempty & #charts .~ named "accret" [c] & #hudOptions .~ defaultHudOptions
+#+end_src
+
+#+RESULTS:

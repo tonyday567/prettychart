@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- | Read some text and attempt to make a chart.
 module Chart.Any
-  ( chartAny,
+  ( -- chartAny,
     writeAny,
     tryChart,
     chartList2,
@@ -21,10 +20,20 @@ where
 
 import Chart
 import Chart.Various
-import Control.Lens
-import qualified Data.HashMap.Strict as HashMap
-import Data.List ((!!))
+import Optics.Core
 import NumHask.Prelude hiding (fold)
+import Data.Text ( Text, unpack, pack )
+-- import Data.Either
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
+import Text.Read (readEither)
+import qualified Data.ByteString.Char8 as C
+import Data.Bifunctor (second)
+import Data.Either (rights)
+
+chartToText :: ChartOptions -> Text
+chartToText = pack . C.unpack . printChartOptions
 
 -- | Attempt to read some text and interpret it as data suitable for charting.
 --
@@ -34,13 +43,13 @@ import NumHask.Prelude hiding (fold)
 -- ![chartAny Example](other/chartany.svg)
 chartAny :: Text -> Either Text Text
 chartAny t =
-  maybe (Left "<html>bad read</html>") Right . head . rights $
+  maybe (Left "<html>bad read</html>") Right . listToMaybe . rights $
     [ -- single list
       tryChart
         t
         ( \xs ->
             bool
-              (let (h, c) = barChart defaultBarOptions (BarData [xs] Nothing Nothing) in chartSvg (mempty & #hudOptions .~ h & #chartList .~ c))
+              (chartToText (barChart defaultBarOptions (BarData [xs] [] [])))
               (anyLineChart [xs])
               (length xs > 10)
         ),
@@ -52,22 +61,21 @@ chartAny t =
       -- text
       tryChart t anyTextChart,
       tryChart t chartText1,
-      -- just text FIXME: doesn't parse for escaped characters
-      tryChart ("\"" <> t <> "\"") (\x -> chartSvgDefault [Chart (TextA defaultTextStyle ["\"" <> x <> "\""]) [zero]])
+      tryChart ("\"" <> t <> "\"") (\x -> chartToText (mempty & #charts .~ unnamed [TextChart defaultTextStyle [("\"" <> x <> "\"", zero)]]))
     ]
 
 -- | Attempt to read chart data and write to file.
 writeAny :: FilePath -> Text -> IO ()
-writeAny f t = writeFile f $ either id id $ chartAny t
+writeAny f t = Text.writeFile f $ either id id $ chartAny t
 
 -- | Read some Text and try a chart with a particular shape.
 tryChart :: (Read a) => Text -> (a -> Text) -> Either Text Text
-tryChart t c = either (Left . pack) (Right . c) $ readEither (unpack t)
+tryChart t c = either (Left . Text.pack) (Right . c) $ readEither (unpack t)
 
 -- | Default chart for a double list.
 chartList2 :: [[Double]] -> Text
 chartList2 xss
-  | (length xss < 4) && (length (xss !! 0) < 10) = anyBarChart xss
+  | (length xss < 4) && (length (head xss) < 10) = anyBarChart xss
   -- square
   | all (length xss ==) (length <$> xss) =
     anySurfaceChart xss
@@ -76,23 +84,23 @@ chartList2 xss
 -- | Default text chart.
 chartText1 :: [Text] -> Text
 chartText1 xs
-  | (length xs < 20) = anyTextChart [xs]
+  | length xs < 20 = anyTextChart [xs]
   -- word salad
-  | otherwise = anySingleNamedBarChart (second fromIntegral <$> HashMap.toList mapCount)
+  | otherwise = anySingleNamedBarChart (second fromIntegral <$> Map.toList mapCount)
   where
-    mapCount = foldl' (\m x -> HashMap.insertWith (+) x (1 :: Int) m) HashMap.empty xs
+    mapCount = foldl' (\m x -> Map.insertWith (+) x (1 :: Int) m) Map.empty xs
 
 -- | Bar chart for a double list.
 anyBarChart :: [[Double]] -> Text
-anyBarChart xss = chartSvg (mempty & #hudOptions .~ h & #chartList .~ c)
+anyBarChart xss = chartToText c
   where
-    (h, c) =
+    c =
       barChart
         defaultBarOptions
         ( BarData
             xss
-            (Just (("row " <>) . show <$> take nx [(0 :: Int) ..]))
-            (Just (("col " <>) . show <$> take ny [(0 :: Int) ..]))
+            (pack . ("row " <>) . show <$> take nx [(0 :: Int) ..])
+            (pack . ("col " <>) . show <$> take ny [(0 :: Int) ..])
         )
       where
         nx = length xss
@@ -100,55 +108,54 @@ anyBarChart xss = chartSvg (mempty & #hudOptions .~ h & #chartList .~ c)
 
 -- | Bar chart for a labelled list.
 anySingleNamedBarChart :: [(Text, Double)] -> Text
-anySingleNamedBarChart xs = chartSvg (mempty & #hudOptions .~ h & #chartList .~ c)
-  where
-    (h, c) =
-      barChart
+anySingleNamedBarChart xs = chartToText $ barChart
         defaultBarOptions
         ( BarData
             [snd <$> xs]
-            (Just (fst <$> xs))
-            Nothing
+            (fst <$> xs)
+            []
         )
 
 -- | Default line chart for a double list
 anyLineChart :: [[Double]] -> Text
 anyLineChart xss =
-  chartSvgHud (stdLineChart 0.02 palette1 xss)
+  chartToText (mempty & #charts .~ unnamed (stdLineChart 0.02 (palette1 <$> [0..]) xss))
 
 -- | Default scatter chart for paired data
 anyScatterChart :: [[(Double, Double)]] -> Text
 anyScatterChart xss =
-  chartSvgHud (scatterChart (fmap (fmap (uncurry Point)) xss))
+  chartToText (mempty & #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss)))
 
 -- | Default text chart for double list.
 anyTextChart :: [[Text]] -> Text
 anyTextChart xss =
-  chartSvgHud (tableChart xss)
+  chartToText $ mempty & #charts .~ unnamed (tableChart xss)
 
 -- | Default pixel chart for double list.
 anySurfaceChart :: [[Double]] -> Text
-anySurfaceChart xss = chartSvg (ChartSvg defaultSvgOptions (anySurfaceHud nx ny) h c)
+anySurfaceChart xss = chartToText (ChartOptions defaultMarkupOptions (anySurfaceHud nx ny) ct)
   where
+    ct = runHud (aspect 1) h (unnamed c)
+
     (c, h) =
       surfacefl
-        (\(Point x y) -> ((xss !! (floor x)) !! (floor y)))
+        (\(Point x y) -> (xss !! floor x) !! floor y)
         (SurfaceOptions defaultSurfaceStyle (Point nx ny) (Rect 0 (fromIntegral nx :: Double) 0 (fromIntegral ny)))
-        (defaultSurfaceLegendOptions "square")
+        (defaultSurfaceLegendOptions dark "square")
     nx = length xss
-    ny = length (xss !! 0)
+    ny = length (head xss)
 
 anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
   defaultHudOptions
-    & #hudAxes
-      .~ [ defaultAxisOptions
-             & #atick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
-             & #place .~ PlaceLeft,
-           defaultAxisOptions
-             & #atick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
-             & #place .~ PlaceBottom
+    & #axes
+      .~ [ (5, defaultAxisOptions
+             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
+             & #place .~ PlaceLeft),
+           (5, defaultAxisOptions
+             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
+             & #place .~ PlaceBottom)
          ]
   where
-    labelsx = show <$> [0 .. (nx - 1)]
-    labelsy = show <$> [0 .. (ny - 1)]
+    labelsx = pack . show <$> [0 .. (nx - 1)]
+    labelsy = pack . show <$> [0 .. (ny - 1)]

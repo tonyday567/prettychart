@@ -1,22 +1,21 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Eta reduce" #-}
+{-# HLINT ignore "Use ?~" #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | Various common chart patterns.
 module Chart.Various
   ( -- * sub-chart patterns
     xify,
-    xify',
     yify,
-    yify',
     addLineX,
     addLineY,
-    stdLineChart,
-    stdLines,
-    lineLegend,
-    tsAxes,
+    simpleLineChart,
+    timeXAxis,
     titlesHud,
     gpalette,
     gpaletteStyle,
@@ -28,108 +27,73 @@ module Chart.Various
     scatterChart,
     histChart,
     quantileHistChart,
+
     digitSurfaceChart,
     tableChart,
   )
 where
 
 import Chart
-import Control.Lens
-import qualified Data.HashMap.Strict as HashMap
-import Data.List ((!!))
 import Data.Time (UTCTime (..))
 import NumHask.Prelude hiding (fold)
 import NumHask.Space
+import Data.Text (Text)
+import Optics.Core
+import qualified Data.Map.Strict as Map
+
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]
 xify ys =
   zipWith Point [0 ..] ys
 
--- | convert from [a] to [XY a], by adding the index as the x axis
-xify' :: [Double] -> [XY Double]
-xify' ys =
-  zipWith P [0 ..] ys
-
 -- | convert from [a] to [Point a], by adding the index as the y axis
 yify :: [Double] -> [Point Double]
 yify xs =
   zipWith Point xs [0 ..]
 
--- | convert from [a] to [XY a], by adding the index as the y axis
-yify' :: [Double] -> [XY Double]
-yify' xs =
-  zipWith P xs [0 ..]
-
 -- | add a horizontal line at y
-addLineX :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
+addLineX :: Double -> LineStyle -> [Chart] -> [Chart]
 addLineX y ls cs = cs <> [l]
   where
-    l = Chart (LineA ls) (PointXY <$> [Point lx y, Point ux y])
-    (Rect lx ux _ _) = fromMaybe one $ foldRect $ mconcat $ fmap toRect . xys <$> cs
+    l = LineChart ls [[Point lx y, Point ux y]]
+    (Rect lx ux _ _) = fromMaybe one $ boxes cs
 
 -- | add a verticle line at x
-addLineY :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
+addLineY :: Double -> LineStyle -> [Chart] -> [Chart]
 addLineY x ls cs = cs <> [zeroLine]
   where
-    zeroLine = Chart (LineA ls) (PointXY <$> [Point x ly, Point x uy])
-    (Rect _ _ ly uy) = fromMaybe one $ foldRect $ mconcat $ fmap toRect . xys <$> cs
+    zeroLine = LineChart ls [[Point x ly, Point x uy]]
+    (Rect _ _ ly uy) = fromMaybe one $ boxes cs
 
--- | interpret a [[Double]] as a series of lines with x coordinates of [0..]
-stdLineChart :: Double -> [Colour] -> [[Double]] -> [Chart Double]
-stdLineChart w p xss =
-  zipWith
-    ( \c xs ->
-        Chart
-          (LineA (defaultLineStyle & #color .~ c & #width .~ w))
-          (xify' xs)
-    )
-    p
-    xss
-
--- | Can of the main palette
-stdLines :: Double -> [LineStyle]
-stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1
-
--- | Legend template for a line chart.
-lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Annotation, Text)])
-lineLegend w rs cs =
-  ( defaultLegendOptions
-      & #ltext . #size .~ 0.3
-      & #lplace .~ PlaceBottom
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) white),
-    zipWith
-      (\a r -> (LineA a, r))
-      ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
-      rs
-  )
+-- | interpret a [Double] as a (poly)line with x coordinates of [0..]
+simpleLineChart :: Double -> Colour -> [Double] -> Chart
+simpleLineChart w c xs =
+        LineChart
+          (defaultLineStyle & #color .~ c & #size .~ w)
+          [xify xs]
 
 -- | Create a hud that has time as the x-axis, based on supplied days, and a rounded yaxis.
-tsAxes :: [UTCTime] -> [AxisOptions]
-tsAxes ds =
-  [ defaultAxisOptions
-      & #atick . #tstyle .~ TickRound (FormatPrec (Just 3)) 6 TickExtend
-      & #place .~ PlaceLeft,
-    defaultAxisOptions & #atick . #tstyle
+timeXAxis :: [UTCTime] -> AxisOptions
+timeXAxis ds =
+  defaultAxisOptions & #ticks % #style
       .~ TickPlaced
-        ( first fromIntegral
-            <$> makeTickDates PosIncludeBoundaries Nothing 8 ds
+        ( placedTimeLabelContinuous PosIncludeBoundaries Nothing 8 (unsafeSpace1 ds)
         )
-  ]
 
 -- | common pattern of chart title, x-axis title and y-axis title
 titlesHud :: Text -> Text -> Text -> HudOptions
 titlesHud t x y =
   defaultHudOptions
-    & #hudTitles
-    .~ [ defaultTitle t,
-         defaultTitle x & #place .~ PlaceBottom & #style . #size .~ 0.08,
-         defaultTitle y & #place .~ PlaceLeft & #style . #size .~ 0.08
+    & #titles
+    .~ [ (5, defaultTitle t),
+         (5, defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.08),
+         (5, defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.08)
        ]
 
 -- | GlyphStyle palette
 gpaletteStyle :: Double -> [GlyphStyle]
-gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ c & #shape .~ fst g & #borderSize .~ snd g) palette1 gpalette
+gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ palette1 c & #shape .~ fst g & #borderSize .~ snd g) [0..] gpalette
 
 -- | Glyph palette
 gpalette :: [(GlyphShape, Double)]
@@ -139,10 +103,10 @@ gpalette =
     (RectSharpGlyph 0.75, 0.01),
     (RectRoundedGlyph 0.75 0.01 0.01, 0.01),
     (EllipseGlyph 0.75, 0),
-    (VLineGlyph 0.005, 0.01),
-    (HLineGlyph 0.005, 0.01),
+    (VLineGlyph, 0.01),
+    (HLineGlyph, 0.01),
     (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
-    (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z", 0.01)
+    (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder, 0.01)
   ]
 
 -- * charts
@@ -150,35 +114,31 @@ gpalette =
 -- | Chart template for quantiles.
 quantileChart ::
   Text ->
-  [Text] ->
   [LineStyle] ->
   [AxisOptions] ->
   [[Double]] ->
-  (HudOptions, [Chart Double])
-quantileChart title names ls as xs =
+  (HudOptions, [Chart])
+quantileChart title ls as xs =
   (hudOptions, chart')
   where
     hudOptions =
       defaultHudOptions
-        & #hudTitles .~ [defaultTitle title]
-        & ( #hudLegend
-              .~ Just
-                ( defaultLegendOptions
-                    & #ltext . #size .~ 0.1
+        & #titles .~ [(5, defaultTitle title)]
+        & ( #legends
+              .~
+                [( 10, defaultLegendOptions
+                    & #textStyle % #size .~ 0.1
                     & #vgap .~ 0.05
                     & #innerPad .~ 0.2
-                    & #lplace .~ PlaceRight,
-                  extractAnns names chart'
-                )
+                    & #place .~ PlaceRight )]
           )
-        & #hudAxes .~ as
-    extractAnns = zipWith (\t c -> (c ^. #annotation, t))
+        & #axes .~ ((6,) <$> as)
 
     chart' =
       zipWith
-        (\l c -> Chart (LineA l) c)
+        LineChart
         ls
-        (zipWith P [0 ..] <$> xs)
+        [zipWith Point [0 ..] <$> xs]
 
 -- | /blendMidLineStyle n w/ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
@@ -186,52 +146,50 @@ blendMidLineStyles l w (c1, c2) = lo
   where
     m = (fromIntegral l - 1) / 2 :: Double
     cs = (\x -> 1 - abs (fromIntegral x - m) / m) <$> [0 .. (l - 1)]
-    bs = (\x -> blend x c1 c2) <$> cs
-    lo = (\c -> defaultLineStyle & #width .~ w & #color .~ c) <$> bs
+    bs = (\x -> mix x c1 c2) <$> cs
+    lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
--- | FIXME: better name
 digitChart ::
   Text ->
   [UTCTime] ->
   [Double] ->
-  (HudOptions, [Chart Double])
+  (HudOptions, [Chart])
 digitChart title utcs xs =
   (hudOptions, [c])
   where
     hudOptions =
       defaultHudOptions
-        & #hudTitles .~ [defaultTitle title]
-        & #hudAxes .~ tsAxes utcs
+        & #titles .~ [(5, defaultTitle title)]
+        & #axes .~ [(5, timeXAxis utcs)]
     c =
-      Chart
-        ( GlyphA
-            ( defaultGlyphStyle
+      GlyphChart
+        (
+            defaultGlyphStyle
                 & #color .~ Colour 0 0 1 1
                 & #shape .~ CircleGlyph
                 & #size .~ 0.01
-            )
         )
-        (xify' xs)
+        (xify xs)
 
 -- | scatter chart
 scatterChart ::
   [[Point Double]] ->
-  [Chart Double]
-scatterChart xss = zipWith (\gs xs -> Chart (GlyphA gs) (PointXY <$> xs)) (gpaletteStyle 0.02) xss
+  [Chart]
+scatterChart xss = zipWith GlyphChart (gpaletteStyle 0.02) xss
 
 -- | histogram chart
 histChart ::
   Text ->
-  Maybe [Text] ->
+  [Text] ->
   Range Double ->
   Int ->
   [Double] ->
-  (HudOptions, [Chart Double])
+  ChartOptions
 histChart title names r g xs =
   barChart defaultBarOptions barData
-    & first (#hudTitles .~ [defaultTitle title])
+    & (#hudOptions % #titles .~ [(5,defaultTitle title)])
   where
-    barData = BarData [hr] names Nothing
+    barData = BarData [hr] names []
     hcuts = grid OuterPos r g
     h = fill hcuts xs
     hr =
@@ -246,25 +204,25 @@ quantileHistChart ::
   [Double] ->
   -- | quantile values
   [Double] ->
-  (HudOptions, [Chart Double])
+  (HudOptions, [Chart])
 quantileHistChart title names qs vs = (hudOptions, [chart'])
   where
     hudOptions =
       defaultHudOptions
-        & #hudTitles
-        .~ [defaultTitle title]
-        & #hudAxes
-        .~ [ maybe
-               ( defaultAxisOptions & #atick . #tstyle
-                   .~ TickRound (FormatPrec (Just 3)) 8 TickExtend
+        & #titles
+        .~ [(5,defaultTitle title)]
+        & #axes
+        .~ [ (5, maybe
+               ( defaultAxisOptions & #ticks % #style
+                   .~ TickRound (FormatN FSDecimal (Just 3) True) 6 TickExtend
                )
                ( \x ->
-                   defaultAxisOptions & #atick . #tstyle
+                   defaultAxisOptions & #ticks % #style
                      .~ TickPlaced (zip vs x)
                )
                names
-           ]
-    chart' = Chart (RectA defaultRectStyle) (RectXY <$> hr)
+           )]
+    chart' = RectChart defaultRectStyle hr
     hr =
       zipWith
         (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
@@ -278,18 +236,18 @@ digitSurfaceChart ::
   (Text, Text, Text) ->
   [Text] ->
   [(Int, Int)] ->
-  [Chart Double]
+  ChartTree
 digitSurfaceChart pixelStyle plo ts names ps =
-  runHud (aspect 1) (hs0 <> hs1) (cs0 <> cs1)
+  runHud (aspect 1) (hs0 <> hs1) (unnamed cs1)
   where
     l = length names
     pts = Point l l
     gr :: Rect Double
     gr = fromIntegral <$> Rect 0 l 0 l
-    mapCount = foldl' (\m x -> HashMap.insertWith (+) x 1.0 m) HashMap.empty ps
+    mapCount = foldl' (\m x -> Map.insertWith (+) x 1.0 m) Map.empty ps
     f :: Point Double -> Double
-    f (Point x y) = fromMaybe 0 $ HashMap.lookup (floor x, floor y) mapCount
-    (hs0, cs0) = makeHud gr (qvqHud ts names)
+    f (Point x y) = fromMaybe 0 $ Map.lookup (floor x, floor y) mapCount
+    (hs0, _) = toHuds (qvqHud ts names) gr
     (cs1, hs1) =
       surfacefl
         f
@@ -300,25 +258,24 @@ digitSurfaceChart pixelStyle plo ts names ps =
 qvqHud :: (Text, Text, Text) -> [Text] -> HudOptions
 qvqHud ts labels =
   defaultHudOptions
-    & #hudTitles .~ makeTitles ts
-    & #hudAxes
-      .~ [ defaultAxisOptions
-             & #atick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+    & #titles .~ ((5,) <$> makeTitles ts)
+    & #axes
+      .~ ((5,) <$> [ defaultAxisOptions
+             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
              & #place .~ PlaceLeft,
            defaultAxisOptions
-             & #atick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
              & #place .~ PlaceBottom
-         ]
+         ])
 
 makeTitles :: (Text, Text, Text) -> [Title]
 makeTitles (t, xt, yt) =
   reverse
     [ defaultTitle t,
-      defaultTitle xt & #place .~ PlaceBottom & #style . #size .~ 0.06,
-      defaultTitle yt & #place .~ PlaceLeft & #style . #size .~ 0.06
+      defaultTitle xt & #place .~ PlaceBottom & #style % #size .~ 0.06,
+      defaultTitle yt & #place .~ PlaceLeft & #style % #size .~ 0.06
     ]
 
 -- | Chart for double list of Text.
-tableChart :: [[Text]] -> [Chart Double]
-tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0 ..])) tss [0 ..]
-
+tableChart :: [[Text]] -> [Chart]
+tableChart tss = zipWith (\ts x -> TextChart defaultTextStyle (zip ts (Point x <$> take (length ts) [0 ..]))) tss [0 ..]
