@@ -36,22 +36,12 @@ import Control.Category
 
 -- $setup
 --
--- >>> :set -XRebindableSyntax
 -- >>> :set -Wno-type-defaults
 -- >>> import Chart
 -- >>> import Chart.Any
 -- >>> import Data.Text (pack, Text)
 -- >>> import qualified Data.Text as Text
 -- >>> import qualified Data.Text.IO as Text
--- >>> import Chart.Various
--- >>> import Chart.Various.Examples
--- >>> import Optics.Core
--- >>> import NumHask.Prelude hiding ((.), id)
--- >>> import Control.Category
--- >>> import Data.Mealy
--- >>> r <- getReturns
--- >>> length r
--- 10897
 
 -- | Attempt to read some text and interpret it as data suitable for charting.
 --
@@ -121,12 +111,12 @@ anyBar2 xss = barChart
         defaultBarOptions
         ( BarData
             xss
-            (pack . ("row " <>) . show <$> take nx [(0 :: Int) ..])
-            (pack . ("col " <>) . show <$> take ny [(0 :: Int) ..])
+            (pack . ("row " <>) . show <$> take nrows [(0 :: Int) ..])
+            (pack . ("col " <>) . show <$> take ncols [(0 :: Int) ..])
         )
       where
-        nx = length xss
-        ny = maximum (length <$> xss)
+        ncols = length xss
+        nrows = maximum (length <$> xss)
 
 anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =

@@ -41,19 +41,11 @@ print "ok"
 #+end_src
 
 #+RESULTS:
-: [1 of 3] Compiling Chart.Various    ( src/Chart/Various.hs, interpreted ) [Source file changed]
 : Ok, three modules loaded.
 : >
 : ok
 
-** Next chart-svg-various todo
-
-- [ ] audit of any charts.
-- [ ] compound chart
-- [ ] chartoptions web socket
-
-* ToDo Chart.Various Examples
-
+* Chart.Various Examples
 ** Example data
 
 #+begin_src haskell :results output
@@ -139,34 +131,15 @@ writeChartOptions "other/quantile.svg" c'
 #+RESULTS:
 [[file:other/quantile.svg]]
 
-#+begin_src haskell
-qss' = taker 10 <$> qss
-#+end_src
-
-#+begin_src haskell :results output
-:t qss'
-:t ([zipWith Point [0 ..] <$> qss'])
-#+end_src
-
-#+RESULTS:
-: qss' :: [[Double]]
-: ([zipWith Point [0 ..] <$> qss']) :: [[[Point Double]]]
-
-#+begin_src haskell :file other/quantile2.svg :results output graphics file :exports both
-writeChartOptions "other/quantile2.svg" $ mempty & #charts .~ unnamed (zipWith LineChart ls  ([zipWith Point [0 ..] <$> qss]))
-#+end_src
-
-#+RESULTS:
-[[file:other/quantile2.svg]]
-
-
 ** quantileHistChart
 
 #+begin_src haskell :results output
 qs = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99]
 qslast = Data.Mealy.fold (Data.Mealy.Quantiles.quantiles 0.99 qs) (snd <$> r)
-c = quantileHistChart "quantileHistChart" (Just (quantileNames qs)) qs qslast
+c = quantileHistChart (Just $ quantileNames qs) qs qslast
 #+end_src
+
+#+RESULTS:
 
 #+begin_src haskell :file other/qhist.svg :results output graphics file :exports both
 writeChartOptions "other/qhist.svg" c
@@ -180,8 +153,10 @@ writeChartOptions "other/qhist.svg" c
 #+begin_src haskell :results output
 qs = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 digits = scan (digitize 0.99 qs) (snd <$> taker 1000 r)
-c = digitChart "digitChart" ((\x -> UTCTime x 0) . fst <$> taker 1000 r) (fromIntegral <$> digits)
+c = digitChart ((\x -> UTCTime x 0) . fst <$> taker 1000 r) (fromIntegral <$> digits)
 #+end_src
+
+#+RESULTS:
 
 #+begin_src haskell :file other/digit.svg :results output graphics file :exports both
 writeChartOptions "other/digit.svg" c
@@ -203,8 +178,10 @@ d1 = ((,) <$> (ma 0.95 >>> digitize 0.99 qs) <*> (std 0.95 >>> digitize 0.99 qs)
 
 #+begin_src haskell :results output
 ds = scan d1 (taker 5000 $ snd <$> r)
-c = digitSurfaceChart defaultSurfaceStyle (defaultSurfaceLegendOptions dark "legend") ("digitSurfaceChart", "ma", "std") (quantileNames qs) ds
+c = digitSurfaceChart defaultSurfaceStyle (defaultSurfaceLegendOptions dark "legend") ("ma versus std deciles", "ma", "std") (quantileNames qs) ds
 #+end_src
+
+#+RESULTS:
 
 #+begin_src haskell :file other/digitsurface.svg :results output graphics file :exports both
 writeChartOptions "other/digitsurface.svg" $ mempty & #charts .~ c
@@ -213,11 +190,10 @@ writeChartOptions "other/digitsurface.svg" $ mempty & #charts .~ c
 #+RESULTS:
 [[file:other/digitsurface.svg]]
 
-* ToDo Chart.Any Examples
-
+* Chart.Any Examples
 ** single list
 
-10 or less elements
+*** 10 or less elements => bar chart
 
 #+begin_src haskell
 xs = [0..9]
@@ -232,8 +208,11 @@ either Text.putStrLn (writeChartOptions "other/list1a.svg") $ anyChart (pack . s
 #+RESULTS:
 [[file:other/list1a.svg]]
 
+#+begin_src haskell :results output
+either Text.putStrLn (writeChartOptions "other/list1a.svg") $ anyChart (pack . show $ xs)
+#+end_src
 
-> 1000 elements opts for a histogram
+*** >1000 elements => histogram
 
 #+begin_src haskell
 xs = sin <$> [0..2000]
@@ -248,7 +227,7 @@ either Text.putStrLn (writeChartOptions "other/list1b.svg") $ anyChart (pack . s
 #+RESULTS:
 [[file:other/list1b.svg]]
 
-
+*** < 1000 && > 10 => line chart
 
 In between goes for a line chartIn between goes for a line chart.
 
@@ -266,28 +245,121 @@ either Text.putStrLn (writeChartOptions "other/list1c.svg") $ anyChart (pack . s
 #+RESULTS:
 [[file:other/list1c.svg]]
 
-#+begin_src haskell
-either Text.putStrLn (writeChartOptions "other/xs.svg") $ anyChart (pack . show $ xs)
-#+end_src
+** double list
+*** < 4 lists && < 10 values per list => bar chart
 
 
-
-** barChart
-
-#+begin_src haskell
-xs = (1+) . sin <$> [0..9] :: [Double]
-xs' = (1+) . cos <$> [0..9] :: [Double]
-#+end_src
-
-single list
-#+begin_src haskell
-writeChartOptions "other/xs.svg" $ barChart defaultBarOptions (BarData [xs] [] [])
-#+end_src
-
-Double list
-
-#+begin_src haskell
-writeChartOptions "other/xs.svg" $ barChart defaultBarOptions (BarData [xs,xs'] [] ["sin","cos"])
+#+begin_src haskell :results output
+xs = [(1+) . sin <$> [0..8], (1+) . cos <$> [0..8]]
+xs
 #+end_src
 
 #+RESULTS:
+: [[1.0,1.8414709848078965,1.9092974268256817,1.1411200080598671,0.2431975046920718,4.1075725336861546e-2,0.7205845018010741,1.656986598718789,1.989358246623382],[2.0,1.5403023058681398,0.5838531634528576,1.0007503399554585e-2,0.34635637913638806,1.2836621854632262,1.960170286650366,1.7539022543433047,0.8544999661913865]]
+
+#+begin_src haskell :file other/dlista.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/dlista.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/dlista.svg]]
+
+
+*** square => surface chart
+
+#+begin_src haskell :results output
+iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
+xs = iter2 (*) (fmap sin [1..20]) (fmap cos [1..20]) :: [[Double]]
+:t xs
+length xs
+fmap length xs
+#+end_src
+
+#+RESULTS:
+: xs :: [[Double]]
+: 20
+: [20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20]
+
+FIXME: segfaulted!
+#+begin_src haskell :file other/dlistb.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/dlistb.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+*** anything else => line chart
+
+#+begin_src haskell :results output
+iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
+xs = iter2 (*) [1..10] (fmap (sin . (0.05*)) [1..100])
+:t xs
+length xs
+fmap length xs
+#+end_src
+
+#+RESULTS:
+: xs :: (Enum b, TrigField b, Fractional b) => [[b]]
+: 10
+: [100,100,100,100,100,100,100,100,100,100]
+
+#+begin_src haskell :file other/dlistc.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/dlistc.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/dlistc.svg]]
+
+** tuple list [(Double, Double)] => scatter
+
+
+#+begin_src haskell :results output
+xs = zip (fmap (sin . (0.06*)) [1..100]) (fmap (cos . (0.06*)) [1..100])
+:t xs
+#+end_src
+
+#+RESULTS:
+: xs
+:   :: (TrigField b1, TrigField b2, Fractional b1, Fractional b2,
+:       Enum b1, Enum b2) =>
+:      [(b1, b2)]
+
+#+begin_src haskell :file other/dtuple.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/dtuple.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/dtuple.svg]]
+
+** double tuple list [(Double, Double)] => scatter
+
+
+#+begin_src haskell :results output
+iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
+
+
+xs = iter2 (\s (x,y) -> (s*x, s*y)) ((0.1*) <$> [1..10]) (zip (fmap (sin . (0.06*)) [1..100]) (fmap (cos . (0.06*)) [1..100]))
+:t xs
+#+end_src
+
+#+RESULTS:
+: > >
+: xs :: (Fractional b, Enum b, TrigField b) => [[(b, b)]]
+
+#+begin_src haskell :file other/dtupleb.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/dtupleb.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/dtupleb.svg]]
+
+** (Text, Double) tuple list
+
+#+begin_src haskell
+xs = (\x -> (show x, x)) <$> [0..9]
+#+end_src
+
+#+RESULTS:
+#+begin_src haskell :file other/tdtuple.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/tdtuple.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/tdtuple.svg]]
