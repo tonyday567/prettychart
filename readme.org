@@ -4,17 +4,6 @@
 [[https://hackage.haskell.org/package/chart-svg-various][https://img.shields.io/hackage/v/chart-svg-various.svg]]
 [[https://github.com/tonyday567/chart-svg-various/actions?query=workflow%3Ahaskell-ci][https://github.com/tonyday567/chart-svg-various/workflows/haskell-ci/badge.svg]]
 
-
-
-
-* Usage
-
-#+begin_src haskell :results output
-import Chart.Any
-import Chart.Various
-import Chart.Examples
-#+end_src
-
 * Development
 
 #+begin_src haskell :results output
@@ -23,9 +12,10 @@ import Chart.Examples
 :set -Wno-type-defaults
 :set -Wno-name-shadowing
 :set -XOverloadedStrings
+:set -XTupleSections
 :set -XOverloadedLabels
 import qualified Prelude
-import Chart
+import Chart hiding (quantiles)
 import Optics.Core
 import Chart.Various
 import Chart.Any
@@ -38,71 +28,266 @@ import Data.Mealy
 import Data.Profunctor
 import Data.Maybe
 import Data.Bifunctor
-import NumHask.Prelude
-import NumHask.Space
+import NumHask.Prelude hiding ((.), id)
+import NumHask.Space hiding (quantiles)
 import qualified Data.Map as Map
 import Data.FormatN
 import qualified Data.Text as Text
+import Data.Time
+import Data.Mealy.Quantiles
+import qualified Data.List as List
+import Control.Category
+print "ok"
 #+end_src
 
 #+RESULTS:
-: [4 of 4] Compiling Chart.Various.Examples ( src/Chart/Various/Examples.hs, interpreted ) [Flags changed]
-: Ok, four modules loaded.
+: [1 of 3] Compiling Chart.Various    ( src/Chart/Various.hs, interpreted ) [Source file changed]
+: Ok, three modules loaded.
 : >
+: ok
+
+** Next chart-svg-various todo
+
+- [ ] audit of any charts.
+- [ ] compound chart
+- [ ] chartoptions web socket
+
+* ToDo Chart.Various Examples
+
+** Example data
 
 #+begin_src haskell :results output
 r <- getReturns
 length r
-take 10 r
+accret = scan (second' (dipure (+))) r
+decay = 0.004
+rs = snd <$> r
+xma = scan (ma decay) rs
+xstd = scan (std decay) rs
 #+end_src
 
 #+RESULTS:
 : 10897
-: [(1980-01-02,-1.9654e-2),(1980-01-03,-5.687e-3),(1980-01-04,1.2282e-2),(1980-01-07,2.813e-3),(1980-01-08,1.9472e-2),(1980-01-09,1.835e-3),(1980-01-10,7.306e-3),(1980-01-11,0.0),(1980-01-14,4.539e-3),(1980-01-15,6.321e-3)]
 
+** simpleLineChart
 
-
-- simplest possible charts
-
-** line chart of cumulative return
-
-- [ ] date on x axis
-- [ ] title & subtitles
-- [ ] percent format on y axis
-
-#+begin_src haskell
-accret = scan (second' (dipure (+))) r
-take 10 accret
+#+begin_src haskell :results output
+c = simpleLineChart 0.015 (palette1 2) (snd <$> accret)
+xaxis = (5, timeXAxis 8 ((\x -> UTCTime x 0) . fst <$> accret))
+yaxis = (5, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
+h = defaultHudOptions & #titles .~ (titlesHud "Accumulated Returns" "" "accumulated return") & #axes .~ [xaxis, yaxis]
+accretChart = mempty & #charts .~ named "accret" [c] & #hudOptions .~ h :: ChartOptions
 #+end_src
 
 #+RESULTS:
-| 1980-01-02 |             -0.019654 |
-| 1980-01-03 | -0.025341000000000002 |
-| 1980-01-04 | -0.013059000000000003 |
-| 1980-01-07 | -0.010246000000000003 |
-| 1980-01-08 |  0.009225999999999996 |
-| 1980-01-09 |  0.011060999999999996 |
-| 1980-01-10 |  0.018366999999999994 |
-| 1980-01-11 |  0.018366999999999994 |
-| 1980-01-14 |  0.022905999999999996 |
-| 1980-01-15 |  0.029226999999999996 |
 
-
-#+begin_src haskell :file other/accret.svg :results output graphics file :exports both
-s = defaultLineStyle & #color .~ palette1 2 & #size .~ 0.0015
-c = LineChart s [xify (snd <$> accret)]
-h = defaultHudOptions & #titles .~ undefined
-accretChart = mempty & #charts .~ named "accret" [c] & #hudOptions .~ h
-writeChartOptions "other/accret.svg" accretChart
+#+begin_src haskell :file other/simpleline.svg :results output graphics file :exports both
+writeChartOptions "other/simpleline.svg" accretChart
 #+end_src
 
 #+RESULTS:
-[[file:other/accret.svg]]
+[[file:other/simpleline.svg]]
 
+** histChart
 
+#+begin_src haskell :file other/hist.svg :results output graphics file :exports both
+writeChartOptions "other/hist.svg" $ histChart (Range (-0.04) 0.04) 40 xma
+#+end_src
+
+#+RESULTS:
+[[file:other/hist.svg]]
+
+** scatterChart
 
 #+begin_src haskell
-writeChartOptions "other/accret.svg" $ mempty & #charts .~ named "accret" [c] & #hudOptions .~ defaultHudOptions
+maVstd = zipWith Point (take 500 xma) (taker 500 xstd)
+#+end_src
+
+#+RESULTS:
+
+#+begin_src haskell :results output
+c = scatterChart [maVstd]
+xaxis = (5, defaultAxisOptions & #place .~ PlaceBottom & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
+yaxis = (5, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
+h = defaultHudOptions & #titles .~ (titles3 8 ("scatter", "ma", "std")) & #axes .~ [xaxis, yaxis]
+xsChart = mempty & #charts .~ unnamed c & #hudOptions .~ h :: ChartOptions
+#+end_src
+
+#+RESULTS:
+
+#+begin_src haskell :file other/scatter.svg :results output graphics file :exports both
+writeChartOptions "other/scatter.svg" xsChart
+#+end_src
+
+#+RESULTS:
+[[file:other/scatter.svg]]
+** quantileChart
+
+#+begin_src haskell :results output
+qs = [0.01, 0.1, 0.5, 0.9, 0.99]
+qss = fmap (taker 1000) $ List.transpose $ scan (Data.Mealy.Quantiles.quantiles 0.99 qs) (snd <$> r)
+c = quantileChart (quantileNames qs) ( blendMidLineStyles (length qss) 0.005 (Colour 0.7 0.1 0.3 0.5, Colour 0.1 0.4 0.8 1)) qss
+xaxis = (5, timeXAxis 8 (taker 1000 $ (\x -> UTCTime x 0) . fst <$> accret))
+yaxis = (5, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
+c' = c & (#hudOptions % #axes) .~ [xaxis,yaxis] & #markupOptions % #markupHeight .~ 600
+#+end_src
+
+#+begin_src haskell :file other/quantile.svg :results output graphics file :exports both
+writeChartOptions "other/quantile.svg" c'
+#+end_src
+
+#+RESULTS:
+[[file:other/quantile.svg]]
+
+#+begin_src haskell
+qss' = taker 10 <$> qss
+#+end_src
+
+#+begin_src haskell :results output
+:t qss'
+:t ([zipWith Point [0 ..] <$> qss'])
+#+end_src
+
+#+RESULTS:
+: qss' :: [[Double]]
+: ([zipWith Point [0 ..] <$> qss']) :: [[[Point Double]]]
+
+#+begin_src haskell :file other/quantile2.svg :results output graphics file :exports both
+writeChartOptions "other/quantile2.svg" $ mempty & #charts .~ unnamed (zipWith LineChart ls  ([zipWith Point [0 ..] <$> qss]))
+#+end_src
+
+#+RESULTS:
+[[file:other/quantile2.svg]]
+
+
+** quantileHistChart
+
+#+begin_src haskell :results output
+qs = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99]
+qslast = Data.Mealy.fold (Data.Mealy.Quantiles.quantiles 0.99 qs) (snd <$> r)
+c = quantileHistChart "quantileHistChart" (Just (quantileNames qs)) qs qslast
+#+end_src
+
+#+begin_src haskell :file other/qhist.svg :results output graphics file :exports both
+writeChartOptions "other/qhist.svg" c
+#+end_src
+
+#+RESULTS:
+[[file:other/qhist.svg]]
+
+** digitChart
+
+#+begin_src haskell :results output
+qs = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+digits = scan (digitize 0.99 qs) (snd <$> taker 1000 r)
+c = digitChart "digitChart" ((\x -> UTCTime x 0) . fst <$> taker 1000 r) (fromIntegral <$> digits)
+#+end_src
+
+#+begin_src haskell :file other/digit.svg :results output graphics file :exports both
+writeChartOptions "other/digit.svg" c
+#+end_src
+
+#+RESULTS:
+[[file:other/digit.svg]]
+
+** digitSurfaceChart
+
+        #+begin_src haskell :results output
+qs = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+d1 = ((,) <$> (ma 0.95 >>> digitize 0.99 qs) <*> (std 0.95 >>> digitize 0.99 qs))
+:t d1
+        #+end_src
+
+#+RESULTS:
+: d1 :: Mealy Double (Int, Int)
+
+#+begin_src haskell :results output
+ds = scan d1 (taker 5000 $ snd <$> r)
+c = digitSurfaceChart defaultSurfaceStyle (defaultSurfaceLegendOptions dark "legend") ("digitSurfaceChart", "ma", "std") (quantileNames qs) ds
+#+end_src
+
+#+begin_src haskell :file other/digitsurface.svg :results output graphics file :exports both
+writeChartOptions "other/digitsurface.svg" $ mempty & #charts .~ c
+#+end_src
+
+#+RESULTS:
+[[file:other/digitsurface.svg]]
+
+* ToDo Chart.Any Examples
+
+** single list
+
+10 or less elements
+
+#+begin_src haskell
+xs = [0..9]
+#+end_src
+
+#+RESULTS:
+
+#+begin_src haskell :file other/list1a.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/list1a.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/list1a.svg]]
+
+
+> 1000 elements opts for a histogram
+
+#+begin_src haskell
+xs = sin <$> [0..2000]
+#+end_src
+
+#+RESULTS:
+
+#+begin_src haskell :file other/list1b.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/list1b.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/list1b.svg]]
+
+
+
+In between goes for a line chartIn between goes for a line chart.
+
+#+begin_src haskell
+xs = sin . (/100) <$> [0..500]
+#+end_src
+
+#+RESULTS:
+
+
+#+begin_src haskell :file other/list1c.svg :results output graphics file :exports both
+either Text.putStrLn (writeChartOptions "other/list1c.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+#+RESULTS:
+[[file:other/list1c.svg]]
+
+#+begin_src haskell
+either Text.putStrLn (writeChartOptions "other/xs.svg") $ anyChart (pack . show $ xs)
+#+end_src
+
+
+
+** barChart
+
+#+begin_src haskell
+xs = (1+) . sin <$> [0..9] :: [Double]
+xs' = (1+) . cos <$> [0..9] :: [Double]
+#+end_src
+
+single list
+#+begin_src haskell
+writeChartOptions "other/xs.svg" $ barChart defaultBarOptions (BarData [xs] [] [])
+#+end_src
+
+Double list
+
+#+begin_src haskell
+writeChartOptions "other/xs.svg" $ barChart defaultBarOptions (BarData [xs,xs'] [] ["sin","cos"])
 #+end_src
 
 #+RESULTS:

@@ -21,10 +21,6 @@ library
   hs-source-dirs:
     src
   default-extensions:
-    NoImplicitPrelude
-    NegativeLiterals
-    OverloadedStrings
-    UnicodeSyntax
   ghc-options:
     -Wall
     -Wcompat
@@ -47,11 +43,10 @@ library
     flatparse,
     containers,
     profunctors,
-    formatn
+    formatn >= 0.3 && < 0.4
   exposed-modules:
     Chart.Any
     Chart.Various.Examples
-    Chart.Mealy
     Chart.Various
   other-modules:
   default-language: Haskell2010

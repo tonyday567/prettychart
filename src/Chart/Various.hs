@@ -9,25 +9,20 @@
 
 -- | Various common chart patterns.
 module Chart.Various
-  ( -- * sub-chart patterns
+  ( simpleLineChart,
     xify,
     yify,
-    addLineX,
-    addLineY,
-    simpleLineChart,
     timeXAxis,
-    titlesHud,
+    titles3,
+    histChart,
+    scatterChart,
     gpalette,
     gpaletteStyle,
-    blendMidLineStyles,
-
-    -- * chart patterns
     quantileChart,
     digitChart,
-    scatterChart,
-    histChart,
+    blendMidLineStyles,
+    quantileNames,
     quantileHistChart,
-
     digitSurfaceChart,
     tableChart,
   )
@@ -40,7 +35,7 @@ import NumHask.Space
 import Data.Text (Text)
 import Optics.Core
 import qualified Data.Map.Strict as Map
-
+import Data.Bifunctor
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]
@@ -52,21 +47,9 @@ yify :: [Double] -> [Point Double]
 yify xs =
   zipWith Point xs [0 ..]
 
--- | add a horizontal line at y
-addLineX :: Double -> LineStyle -> [Chart] -> [Chart]
-addLineX y ls cs = cs <> [l]
-  where
-    l = LineChart ls [[Point lx y, Point ux y]]
-    (Rect lx ux _ _) = fromMaybe one $ boxes cs
-
--- | add a verticle line at x
-addLineY :: Double -> LineStyle -> [Chart] -> [Chart]
-addLineY x ls cs = cs <> [zeroLine]
-  where
-    zeroLine = LineChart ls [[Point x ly, Point x uy]]
-    (Rect _ _ ly uy) = fromMaybe one $ boxes cs
-
 -- | interpret a [Double] as a (poly)line with x coordinates of [0..]
+--
+-- ![simpleLineChart example](other/simpleline.svg)
 simpleLineChart :: Double -> Colour -> [Double] -> Chart
 simpleLineChart w c xs =
         LineChart
@@ -74,22 +57,47 @@ simpleLineChart w c xs =
           [xify xs]
 
 -- | Create a hud that has time as the x-axis, based on supplied days, and a rounded yaxis.
-timeXAxis :: [UTCTime] -> AxisOptions
-timeXAxis ds =
+timeXAxis :: Int -> [UTCTime] -> AxisOptions
+timeXAxis nticks ds =
   defaultAxisOptions & #ticks % #style
       .~ TickPlaced
-        ( placedTimeLabelContinuous PosIncludeBoundaries Nothing 8 (unsafeSpace1 ds)
+        ( first (*fromIntegral (length ds)) <$> placedTimeLabelContinuous PosInnerOnly Nothing nticks (unsafeSpace1 ds)
         )
 
 -- | common pattern of chart title, x-axis title and y-axis title
-titlesHud :: Text -> Text -> Text -> HudOptions
-titlesHud t x y =
-  defaultHudOptions
-    & #titles
-    .~ [ (5, defaultTitle t),
-         (5, defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.08),
-         (5, defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.08)
-       ]
+titles3 :: Priority -> (Text,Text,Text) -> [(Priority, Title)]
+titles3 p (t,x,y) =
+    [ (p, defaultTitle t & #style % #size .~ 0.1),
+      (p, defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.06),
+      (p, defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.06)
+    ]
+
+-- | histogram chart
+--
+-- ![histChart example](other/hist.svg)
+histChart ::
+  Range Double ->
+  Int ->
+  [Double] ->
+  ChartOptions
+histChart r g xs =
+  mempty &
+  #charts .~ named "histogram" [RectChart defaultRectStyle rects] &
+  #hudOptions % #axes .~ [(5,defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)] &
+  #hudOptions % #frames .~ [(20, defaultFrameOptions & #buffer .~ 0.05)]
+  where
+    hcuts = gridSensible OuterPos False r (fromIntegral g)
+    h = fill hcuts xs
+    rects = filter (\(Rect _ _ _ y') -> y'/=0) $
+      makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
+
+-- | scatter chart
+--
+-- ![scatterChart example](other/scatter.svg)
+scatterChart ::
+  [[Point Double]] ->
+  [Chart]
+scatterChart xss = zipWith GlyphChart (gpaletteStyle 0.005) xss
 
 -- | GlyphStyle palette
 gpaletteStyle :: Double -> [GlyphStyle]
@@ -109,36 +117,35 @@ gpalette =
     (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder, 0.01)
   ]
 
--- * charts
-
 -- | Chart template for quantiles.
+--
+-- ![quantileChart example](other/quantile.svg)
 quantileChart ::
-  Text ->
+  [Text] ->
   [LineStyle] ->
-  [AxisOptions] ->
   [[Double]] ->
-  (HudOptions, [Chart])
-quantileChart title ls as xs =
-  (hudOptions, chart')
+  ChartOptions
+quantileChart names ls xs = mempty & #hudOptions .~ h & #charts .~ unnamed c
   where
-    hudOptions =
+    h =
       defaultHudOptions
-        & #titles .~ [(5, defaultTitle title)]
         & ( #legends
               .~
                 [( 10, defaultLegendOptions
                     & #textStyle % #size .~ 0.1
                     & #vgap .~ 0.05
                     & #innerPad .~ 0.2
-                    & #place .~ PlaceRight )]
+                    & #place .~ PlaceRight
+                    & #content .~ zip names ((:[]) <$> c))]
           )
-        & #axes .~ ((6,) <$> as)
-
-    chart' =
+    c =
       zipWith
-        LineChart
+        (\l x -> LineChart l [x])
         ls
-        [zipWith Point [0 ..] <$> xs]
+        (zipWith Point [0 ..] <$> xs)
+
+quantileNames :: Functor f => f Double -> f Text
+quantileNames qs = percent commaSF Nothing <$> qs
 
 -- | /blendMidLineStyle n w/ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
@@ -149,18 +156,52 @@ blendMidLineStyles l w (c1, c2) = lo
     bs = (\x -> mix x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
-digitChart ::
-  Text ->
-  [UTCTime] ->
+-- | a chart drawing a histogram based on quantile information
+--
+-- ![quantileHistChart example](other/qhist.svg)
+quantileHistChart ::
+  Maybe [Text] ->
+  -- | quantiles
   [Double] ->
-  (HudOptions, [Chart])
-digitChart title utcs xs =
-  (hudOptions, [c])
+  -- | quantile values
+  [Double] ->
+  ChartOptions
+quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptions .~ hudOptions
   where
     hudOptions =
       defaultHudOptions
-        & #titles .~ [(5, defaultTitle title)]
-        & #axes .~ [(5, timeXAxis utcs)]
+        & #axes
+        .~ [ (5, maybe
+               ( axis0 & #ticks % #style
+                   .~ TickRound (FormatN FSDecimal (Just 3) 4 True True) 6 TickExtend
+               )
+               ( \x ->
+                   axis0 & #ticks % #style
+                     .~ TickPlaced (zip vs x)
+               )
+               names
+           )]
+    axis0 = defaultAxisOptions & #ticks % #ltick .~ Nothing & (#ticks % #ttick) %~ fmap (first (#size .~ 0.03))
+    chart' = RectChart defaultRectStyle hr
+    hr =
+      zipWith
+        (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
+        (zip qs (drop 1 qs))
+        (zip vs (drop 1 vs))
+
+-- | a chart drawing deciles of a time series
+--
+-- ![digitChart example](other/digit.svg)
+digitChart ::
+  [UTCTime] ->
+  [Double] ->
+  ChartOptions
+digitChart utcs xs =
+  mempty & #charts .~ unnamed [c] & #hudOptions .~ hudOptions
+  where
+    hudOptions =
+      defaultHudOptions
+        & #axes .~ [(5, timeXAxis 8 utcs)]
     c =
       GlyphChart
         (
@@ -171,65 +212,9 @@ digitChart title utcs xs =
         )
         (xify xs)
 
--- | scatter chart
-scatterChart ::
-  [[Point Double]] ->
-  [Chart]
-scatterChart xss = zipWith GlyphChart (gpaletteStyle 0.02) xss
-
--- | histogram chart
-histChart ::
-  Text ->
-  [Text] ->
-  Range Double ->
-  Int ->
-  [Double] ->
-  ChartOptions
-histChart title names r g xs =
-  barChart defaultBarOptions barData
-    & (#hudOptions % #titles .~ [(5,defaultTitle title)])
-  where
-    barData = BarData [hr] names []
-    hcuts = grid OuterPos r g
-    h = fill hcuts xs
-    hr =
-      (\(Rect x x' _ _) -> (x + x') / 2)
-        <$> makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
-
--- | a chart drawing a histogram based on quantile information
-quantileHistChart ::
-  Text ->
-  Maybe [Text] ->
-  -- | quantiles
-  [Double] ->
-  -- | quantile values
-  [Double] ->
-  (HudOptions, [Chart])
-quantileHistChart title names qs vs = (hudOptions, [chart'])
-  where
-    hudOptions =
-      defaultHudOptions
-        & #titles
-        .~ [(5,defaultTitle title)]
-        & #axes
-        .~ [ (5, maybe
-               ( defaultAxisOptions & #ticks % #style
-                   .~ TickRound (FormatN FSDecimal (Just 3) True) 6 TickExtend
-               )
-               ( \x ->
-                   defaultAxisOptions & #ticks % #style
-                     .~ TickPlaced (zip vs x)
-               )
-               names
-           )]
-    chart' = RectChart defaultRectStyle hr
-    hr =
-      zipWith
-        (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
-        (zip qs (drop 1 qs))
-        (zip vs (drop 1 vs))
-
 -- | pixel chart of digitized vs digitized counts
+--
+-- ![digitSurfaceChart example](other/digitsurface.svg)
 digitSurfaceChart ::
   SurfaceStyle ->
   SurfaceLegendOptions ->
@@ -254,27 +239,22 @@ digitSurfaceChart pixelStyle plo ts names ps =
         (SurfaceOptions pixelStyle pts gr)
         plo
 
--- style helpers
 qvqHud :: (Text, Text, Text) -> [Text] -> HudOptions
 qvqHud ts labels =
   defaultHudOptions
-    & #titles .~ ((5,) <$> makeTitles ts)
+    & #titles .~ titles3 5 ts
     & #axes
-      .~ ((5,) <$> [ defaultAxisOptions
+      .~ ((3,) <$> [ defaultAxisOptions
              & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #ticks % #ltick .~ Nothing
+             & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
              & #place .~ PlaceLeft,
            defaultAxisOptions
              & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #ticks % #ltick .~ Nothing
+             & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
              & #place .~ PlaceBottom
          ])
-
-makeTitles :: (Text, Text, Text) -> [Title]
-makeTitles (t, xt, yt) =
-  reverse
-    [ defaultTitle t,
-      defaultTitle xt & #place .~ PlaceBottom & #style % #size .~ 0.06,
-      defaultTitle yt & #place .~ PlaceLeft & #style % #size .~ 0.06
-    ]
 
 -- | Chart for double list of Text.
 tableChart :: [[Text]] -> [Chart]
