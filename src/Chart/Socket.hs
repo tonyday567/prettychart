@@ -31,15 +31,15 @@ chartSocketPage =
       divClass_ "row" $ divClass_ "col" (h2_ "chart" <> L.with div_ [id_ "chart"] mempty)
     ])
 
-printChart :: (Show a) => Committer IO ChartOptions -> Bool -> a -> IO ()
-printChart c reprint s = case anyChart (pack $ show s) of
+printChart :: (Show a) => (ChartOptions -> IO Bool) -> Bool -> a -> IO ()
+printChart send reprint s = case anyChart (pack $ show s) of
   Left _ -> print s
   Right co -> do
-    b <- commit c co
+    b <- send co
     when (not b || reprint) (print s)
 
-startServer :: IO (Committer IO ChartOptions, IO ())
+startServer :: IO (ChartOptions -> IO Bool, IO ())
 startServer = do
   (Box c e, q) <- toBoxM Single
   x <- async $ serveSocketBox defaultSocketConfig chartSocketPage (Box toStdout (replace "chart" . renderChartOptions <$> e))
-  pure (c, cancel x >> q)
+  pure (commit c, cancel x >> q)

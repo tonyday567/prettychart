@@ -9,23 +9,48 @@
 - [ ] Chart.Any
 - [ ] Chart.Socket
 - [ ] rationalize chartSocketPage
-- [ ] can Committer use be hidden?
 
+- [ ] functions
+  anyChart
+  printChart
+  startServer
+
+- [X] can Committer use be hidden?
+  yes!
 - [ ] prettyChartConfig
 
+- [ ] ["hello", "list"] segfaulted
+- [ ] line charts have no hud
 
 Current protocol:
 
 #+begin_quote
-> (c, quitServer) <- startServer
+> (send, quitServer) <- startServer
 Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
 
->  printc = printChart c False
+-- open localhost:9160
+
+>  printc = printChart send False
 > :set -interactive-print printc
+
+
 > quitServer
 > [1..10]
 [1,2,3,4,5,6,7,8,9,10]
 #+end_quote
+
+or
+
+#+begin_src haskell
+import Chart
+> import Chart.Examples
+> send unitExample
+#+end_src
+
+references:
+
+https://hackage.haskell.org/package/javascript-bridge-0.2.0
+[[https://gist.github.com/andrevdm/9560b5e31933391694811bf22e25c312][Using websockets with scotty haskell · GitHub]]
 
 * Development
 
@@ -67,153 +92,13 @@ print "ok"
 #+end_src
 
 #+RESULTS:
-#+begin_example
-Build profile: -w ghc-9.4.4 -O1
-In order, the following will be built (use -v for more details):
- - chart-svg-various-0.1.0 (lib) (configuration changed)
-Configuring library for chart-svg-various-0.1.0..
-Preprocessing library for chart-svg-various-0.1.0..
-GHCi, version 9.4.4: https://www.haskell.org/ghc/  :? for help
-[1 of 4] Compiling Chart.Various    ( src/Chart/Various.hs, interpreted )
-[2 of 4] Compiling Chart.Any        ( src/Chart/Any.hs, interpreted )
-[3 of 4] Compiling Chart.Socket     ( src/Chart/Socket.hs, interpreted )
-
-src/Chart/Socket.hs:65:1: error:
-    parse error (possibly incorrect indentation or mismatched brackets)
-[4 of 4] Compiling Chart.Various.Examples ( src/Chart/Various/Examples.hs, interpreted )
-Failed, three modules loaded.
-ghci> [3 of 4] Compiling Chart.Socket     ( src/Chart/Socket.hs, interpreted )
-
-src/Chart/Socket.hs:65:1: error:
-    parse error (possibly incorrect indentation or mismatched brackets)
-Failed, three modules loaded.
->
-<no location info>: error:
-    Could not load module ‘Chart.Socket’
-    It is a member of the hidden package ‘chart-svg-various-0.1.0’.
-    Perhaps you need to add ‘chart-svg-various’ to the build-depends in your .cabal file.
-ok
-#+end_example
-
-* Chart.Socket
-
-** web-rep/box attempt
-127.0.0.1/9160
-
-  #+begin_src haskell :results output
-:t serveSocketBox defaultSocketConfig chartSocketPage
-  #+end_src
-
-#+RESULTS:
-: serveSocketBox defaultSocketConfig chartSocketPage
-:   :: Box IO Text Text -> IO ()
-
-#+begin_src haskell
-cbw = codeBoxWith (defaultCodeBoxConfig & #codeBoxPage .~ chartSocketPage)
-committerCbw = fmap committer cbw
-:t committerCbw
-#+end_src
-
-#+RESULTS:
-: committerCbw :: Codensity IO (Committer IO [Code])
-
-Codensity IO (Box IO [Code] (Text, Text))
-
-#+begin_src haskell :results output
-import Data.Functor.Contravariant
-
-chartCommitter = contramap ((\x -> [Replace "chart" x]) . renderChartOptions) <$> committerCbw
-:t chartCommitter
-#+end_src
-
-#+RESULTS:
-: >
-: chartCommitter :: Codensity IO (Committer IO ChartOptions)
-
- #+begin_src haskell
-:t fmap (\c -> printChart c True) chartCommitter
- #+end_src
-
-#+RESULTS:
-: fmap (\c -> printChart c True) chartCommitter
-:   :: Show a => Codensity IO (a -> IO ())
-
-#+begin_src haskell
-import Control.Monad.Codensity
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :results output
-cprint <- lowerCodensity (fmap (\c -> printChart c True) chartCommitter)
-#+end_src
-
-#+begin_src haskell
-printChart' [1..9]
-#+end_src
-
-
-
-#+RESULTS:
-: Setting phasers to st[1,2,3,4,5,6,7,8,9]
-
-The print function needs to be of the form:
-
-#+begin_quote
-C a => a -> IO ()
-#+end_quote
-
-#+begin_src haskell
-:t toBoxM
-#+end_src
-
-#+RESULTS:
-: toBoxM :: Queue a -> IO (Box IO a a, IO ())
-
-
-#+begin_src haskell
-:t chartAny
-#+end_src
-
-#+RESULTS:
-: <interactive>:1:1: error: Variable not in scope: chartAny
-
-
-** chartServer
-
-https://hackage.haskell.org/package/javascript-bridge-0.2.0
-
-- [ ] middleware
-- [ ] serve up html with a websocket in it
-- [ ] separately, send SVG to the page
-
-  [[https://gist.github.com/andrevdm/9560b5e31933391694811bf22e25c312][Using websockets with scotty haskell · GitHub]]
-
-- serveSocketBox with stdout as an emitter.
-- stdin as the committer
-- stdin "q" as a quit
-
-#+begin_src haskell
-:t serveSocketBox defaultSocketConfig chartSocketPage (Box toStdout (replace "chart" <$> fromStdin))
-#+end_src
-
-#+RESULTS:
-: serveSocketBox defaultSocketConfig chartSocketPage (Box toStdout (replace "chart" <$> fromStdin))
-:   :: IO ()
-
-#+begin_src haskell
-:t fmap (replace "chart") fromStdin
-#+end_src
-
-#+RESULTS:
-: fmap (replace "chart") fromStdin :: Emitter IO Text
-
-#+begin_src haskell
-(c, quitServer) <- startServer'
-printChart c False [0..3000]
-printc = printChart c False
-:set -interactive-print printc
-#+end_src
+: [1 of 4] Compiling Chart.Various    ( src/Chart/Various.hs, interpreted )
+: [2 of 4] Compiling Chart.Any        ( src/Chart/Any.hs, interpreted )
+: [3 of 4] Compiling Chart.Socket     ( src/Chart/Socket.hs, interpreted )
+: [4 of 4] Compiling Chart.Various.Examples ( src/Chart/Various/Examples.hs, interpreted )
+: Ok, four modules loaded.
+: ghci> Ok, four modules loaded.
+: ok
 
 * Chart.Various Examples
 ** Example data
@@ -404,9 +289,6 @@ In between goes for a line chartIn between goes for a line chart.
 #+begin_src haskell
 xs = sin . (/100) <$> [0..500]
 #+end_src
-
-#+RESULTS:
-
 
 #+begin_src haskell :file other/list1c.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/list1c.svg") $ anyChart (pack . show $ xs)
