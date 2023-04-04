@@ -43,9 +43,16 @@ library
     flatparse,
     containers,
     profunctors,
-    formatn >= 0.3 && < 0.4
+    formatn >= 0.3 && < 0.4,
+    web-rep,
+    box,
+    lucid,
+    kan-extensions,
+    string-interpolate ^>=0.3,
+    async,
   exposed-modules:
     Chart.Any
+    Chart.Socket
     Chart.Various.Examples
     Chart.Various
   other-modules:
