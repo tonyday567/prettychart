@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Eta reduce" #-}
@@ -8,7 +7,7 @@
 {-# LANGUAGE TupleSections #-}
 
 -- | Various common chart patterns.
-module Chart.Various
+module Prettychart.Charts
   ( simpleLineChart,
     xify,
     yify,
@@ -24,18 +23,18 @@ module Chart.Various
     quantileNames,
     quantileHistChart,
     digitSurfaceChart,
-    tableChart,
   )
 where
 
-import Chart
+import Chart hiding (abs)
 import Data.Time (UTCTime (..))
-import NumHask.Prelude hiding (fold)
 import NumHask.Space
 import Data.Text (Text)
 import Optics.Core
 import qualified Data.Map.Strict as Map
 import Data.Bifunctor
+import Data.Foldable
+import Data.Maybe
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]
@@ -225,13 +224,13 @@ digitSurfaceChart ::
 digitSurfaceChart pixelStyle plo ts names ps =
   runHud (aspect 1) (hs0 <> hs1) (unnamed cs1)
   where
-    l = length names
+    l = length names - 1
     pts = Point l l
     gr :: Rect Double
     gr = fromIntegral <$> Rect 0 l 0 l
     mapCount = foldl' (\m x -> Map.insertWith (+) x 1.0 m) Map.empty ps
     f :: Point Double -> Double
-    f (Point x y) = fromMaybe 0 $ Map.lookup (floor x, floor y) mapCount
+    f (Point x y) = fromMaybe 0 $ Map.lookup (floor (1+x), floor (1+y)) mapCount
     (hs0, _) = toHuds (qvqHud ts names) gr
     (cs1, hs1) =
       surfacefl
@@ -245,17 +244,13 @@ qvqHud ts labels =
     & #titles .~ titles3 5 ts
     & #axes
       .~ ((3,) <$> [ defaultAxisOptions
-             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
              & #ticks % #ltick .~ Nothing
              & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
              & #place .~ PlaceLeft,
            defaultAxisOptions
-             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
              & #ticks % #ltick .~ Nothing
              & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
              & #place .~ PlaceBottom
          ])
-
--- | Chart for double list of Text.
-tableChart :: [[Text]] -> [Chart]
-tableChart tss = zipWith (\ts x -> TextChart defaultTextStyle (zip ts (Point x <$> take (length ts) [0 ..]))) tss [0 ..]

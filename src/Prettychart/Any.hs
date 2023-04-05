@@ -1,44 +1,38 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- | Read some text and attempt to make a chart.
-module Chart.Any
+module Prettychart.Any
   ( anyChart,
     anyWrite,
     tryChart,
     anyList1,
     anyList2,
     anyTuple2,
-    anyText1,
-    anyText2,
     anySingleNamedBarChart,
     anyBar2,
     anyLineChart,
     anySurfaceChart,
     anySurfaceHud,
-  )
+    )
 where
 
 import Chart
-import Chart.Various
+import Prettychart.Charts
 import Optics.Core
-import NumHask.Prelude hiding (fold, (.), id)
 import Data.Text ( Text, unpack, pack )
-import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Text.Read (readEither)
-import Data.Bifunctor (second)
 import Data.Either (rights)
-import Control.Category
+import Data.Maybe
 
 -- $setup
 --
 -- >>> :set -Wno-type-defaults
 -- >>> import Chart
--- >>> import Chart.Any
+-- >>> import Prettychart.Any
 -- >>> import Data.Text (pack, Text)
 -- >>> import qualified Data.Text as Text
 -- >>> import qualified Data.Text.IO as Text
@@ -63,10 +57,6 @@ anyChart t =
       tryChart t (\x -> anyTuple2 [x]),
       -- double tuple list
       tryChart t anyTuple2,
-      -- single list text
-      tryChart t anyText1,
-      -- double list text
-      tryChart t anyText2,
       -- (Text,Double) single list
       tryChart t anySingleNamedBarChart
     ]
@@ -120,40 +110,45 @@ anyBar2 xss = barChart
 
 anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
-  mempty & #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette1 c) xs) [0..] xss)
+  mempty &
+  #hudOptions .~ defaultHudOptions &
+  #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette1 c) xs) [0..] xss)
 
 -- | Default scatter chart for paired data
 anyTuple2 :: [[(Double, Double)]] -> ChartOptions
 anyTuple2 xss =
-  mempty & #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss)) & #hudOptions .~ defaultHudOptions
-
--- | Default text chart.
-anyText1 :: [Text] -> ChartOptions
-anyText1 xs
-  | length xs < 20 = anyText2 [xs]
-  -- word salad
-  | otherwise = anySingleNamedBarChart (second fromIntegral <$> Map.toList mapCount)
-  where
-    mapCount = foldl' (\m x -> Map.insertWith (+) x (1 :: Int) m) Map.empty xs
-
--- | Default text chart for double list.
-anyText2 :: [[Text]] -> ChartOptions
-anyText2 xss =
-  mempty & #charts .~ unnamed (tableChart xss)
+  mempty &
+  #hudOptions .~ defaultHudOptions &
+  #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
 
 -- | Default pixel chart for double list.
 anySurfaceChart :: [[Double]] -> ChartOptions
-anySurfaceChart xss = ChartOptions defaultMarkupOptions (anySurfaceHud nx ny) ct
+anySurfaceChart xss = mempty & #charts .~ ct
   where
-    ct = runHud (aspect 1) h (unnamed c)
-
-    (c, h) =
+    ct = runHud (aspect 1) (h0 <> h1) (unnamed c)
+    (h0, _) = toHuds (anySurfaceHud nrows ncols) gr
+    gr = Rect 0 (fromIntegral nrows :: Double) 0 (fromIntegral ncols)
+    (c, h1) =
       surfacefl
-        (\(Point x y) -> (xss !! floor x) !! floor y)
-        (SurfaceOptions defaultSurfaceStyle (Point nx ny) (Rect 0 (fromIntegral nx :: Double) 0 (fromIntegral ny)))
-        (defaultSurfaceLegendOptions dark "square")
-    nx = length xss
-    ny = length (head xss)
+        (\(Point x y) -> (xss' !! floor x) !! floor y)
+        (SurfaceOptions defaultSurfaceStyle (Point nrows ncols) gr)
+        (defaultSurfaceLegendOptions dark "")
+    nrows = rows xss
+    ncols = length xss
+    xss' = appendZeros xss
+
+-- | Number of rows
+rows :: [[Double]] -> Int
+rows xs = maximum $ (0:) $ length <$> xs
+
+appendZeros :: [[Double]] -> [[Double]]
+appendZeros xs =
+  ( \x ->
+      take
+        (rows xs)
+        (x <> repeat 0)
+  )
+    <$> xs
 
 anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
@@ -169,3 +164,4 @@ anySurfaceHud nx ny =
   where
     labelsx = pack . show <$> [0 .. (nx - 1)]
     labelsy = pack . show <$> [0 .. (ny - 1)]
+

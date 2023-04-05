@@ -1,27 +1,17 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RebindableSyntax #-}
 
-module Chart.Various.Examples where
+-- | Data for testing prettychart.
+--
+module Prettychart.ExampleData
+  ( getReturns,
+    taker,
+  ) where
 
 import FlatParse.Basic ( Parser, runParser, char, Result(OK) )
--- import Chart
 import Chart.FlatParse
 import qualified Data.ByteString as BS
--- import NumHask.Prelude
 import Data.Time.Calendar
 import qualified Data.ByteString.Char8 as C
-import NumHask.Prelude hiding (id)
-
--- $setup
---
--- >>> import Chart
--- >>> import Chart.Any
--- >>> import Chart.Various
--- >>> import Chart.Various.Examples
--- >>> import Optics.Core
--- >>> import NumHask.Prelude hiding ((.), id)
--- >>> import Control.Category
--- >>> import FlatParse.Basic
 
 dayP :: Parser e Day
 dayP = do
@@ -40,6 +30,7 @@ runParserError p bs = case runParser p bs of
 dayReturnP :: Parser e (Day, Double)
 dayReturnP = (,) <$> dayP <*> ($(char ',') *> signed double)
 
+-- | Read and parse example data, which is daily stock market returns since 1980.
 getReturns :: IO [(Day,Double)]
 getReturns = do
   bs <- BS.readFile "other/returns.csv"

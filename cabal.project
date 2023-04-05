@@ -1,5 +1,5 @@
 packages:
-  chart-svg-various.cabal
+  prettychart.cabal
   ../mealy/mealy.cabal
   ../chart-svg/chart-svg.cabal
 
