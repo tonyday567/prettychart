@@ -14,13 +14,12 @@ module Prettychart.Charts
     timeXAxis,
     titles3,
     histChart,
-    scatterChart,
     gpalette,
-    gpaletteStyle,
-    quantileChart,
-    digitChart,
+    scatterChart,
     blendMidLineStyles,
     quantileNames,
+    quantileChart,
+    digitChart,
     quantileHistChart,
     digitSurfaceChart,
   )
@@ -36,17 +35,32 @@ import Data.Time (UTCTime (..))
 import NumHask.Space
 import Optics.Core
 
+-- $setup
+--
+-- >>> :set -Wno-type-defaults
+-- >>> import Chart
+-- >>> import Prettychart.Charts
+-- >>> import Data.Text (pack, Text)
+-- >>> import qualified Data.Text as Text
+-- >>> import qualified Data.Text.IO as Text
+
 -- | convert from [a] to [Point a], by adding the index as the x axis
+--
+-- >>> xify [1..3]
+-- [Point 0.0 1.0,Point 1.0 2.0,Point 2.0 3.0]
 xify :: [Double] -> [Point Double]
 xify ys =
   zipWith Point [0 ..] ys
 
 -- | convert from [a] to [Point a], by adding the index as the y axis
+--
+-- >>> yify [1..3]
+-- [Point 1.0 0.0,Point 2.0 1.0,Point 3.0 2.0]
 yify :: [Double] -> [Point Double]
 yify xs =
   zipWith Point xs [0 ..]
 
--- | interpret a [Double] as a (poly)line with x coordinates of [0..]
+-- | interpret a [Double] as a line with x coordinates of [0..]
 --
 -- ![simpleLineChart example](other/simpleline.svg)
 simpleLineChart :: Double -> Colour -> [Double] -> Chart
@@ -55,7 +69,7 @@ simpleLineChart w c xs =
     (defaultLineStyle & #color .~ c & #size .~ w)
     [xify xs]
 
--- | Create a hud that has time as the x-axis, based on supplied days, and a rounded yaxis.
+-- | Create a hud that has time as the x-axis, based on supplied UTCTime list.
 timeXAxis :: Int -> [UTCTime] -> AxisOptions
 timeXAxis nticks ds =
   defaultAxisOptions
@@ -67,9 +81,9 @@ timeXAxis nticks ds =
 -- | common pattern of chart title, x-axis title and y-axis title
 titles3 :: Priority -> (Text, Text, Text) -> [(Priority, Title)]
 titles3 p (t, x, y) =
-  [ (p, defaultTitle t & #style % #size .~ 0.1),
-    (p, defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.06),
-    (p, defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.06)
+  [ (p, defaultTitle t & #style % #size .~ 0.08),
+    (p, defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.05),
+    (p, defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.05)
   ]
 
 -- | histogram chart
@@ -98,24 +112,24 @@ histChart r g xs =
 scatterChart ::
   [[Point Double]] ->
   [Chart]
-scatterChart xss = zipWith GlyphChart (gpaletteStyle 0.005) xss
+scatterChart xss = zipWith GlyphChart (gpaletteStyle 0.04 0.01) xss
 
 -- | GlyphStyle palette
-gpaletteStyle :: Double -> [GlyphStyle]
-gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ palette1 c & #shape .~ fst g & #borderSize .~ snd g) [0 ..] gpalette
+gpaletteStyle :: Double -> Double -> [GlyphStyle]
+gpaletteStyle s bs = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ palette1 c & #shape .~ g & #borderSize .~ bs) [0 ..] gpalette
 
 -- | Glyph palette
-gpalette :: [(GlyphShape, Double)]
+gpalette :: [GlyphShape]
 gpalette =
-  [ (CircleGlyph, 0.01 :: Double),
-    (SquareGlyph, 0.01),
-    (RectSharpGlyph 0.75, 0.01),
-    (RectRoundedGlyph 0.75 0.01 0.01, 0.01),
-    (EllipseGlyph 0.75, 0),
-    (VLineGlyph, 0.01),
-    (HLineGlyph, 0.01),
-    (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
-    (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder, 0.01)
+  [ CircleGlyph,
+    SquareGlyph,
+    RectSharpGlyph 0.75,
+    RectRoundedGlyph 0.75 0.01 0.01,
+    EllipseGlyph 0.75,
+    VLineGlyph,
+    HLineGlyph,
+    TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0),
+    PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder
   ]
 
 -- | Chart template for quantiles.
@@ -147,6 +161,10 @@ quantileChart names ls xs = mempty & #hudOptions .~ h & #charts .~ unnamed c
         ls
         (zipWith Point [0 ..] <$> xs)
 
+-- | Format quantile-style numbers
+--
+-- >>> quantileNames [0.01, 0.5, 0.99]
+-- ["1%","50%","99%"]
 quantileNames :: (Functor f) => f Double -> f Text
 quantileNames qs = percent commaSF Nothing <$> qs
 
@@ -159,10 +177,11 @@ blendMidLineStyles l w (c1, c2) = lo
     bs = (\x -> mix x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
--- | a chart drawing a histogram based on quantile information
+-- | A histogram based on quantile information
 --
 -- ![quantileHistChart example](other/qhist.svg)
 quantileHistChart ::
+  -- | quantile names
   Maybe [Text] ->
   -- | quantiles
   [Double] ->
@@ -196,19 +215,20 @@ quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptio
         (zip qs (drop 1 qs))
         (zip vs (drop 1 vs))
 
--- | a chart drawing deciles of a time series
+-- | A chart drawing quantiles of a time series
 --
 -- ![digitChart example](other/digit.svg)
 digitChart ::
   [UTCTime] ->
   [Double] ->
+  [Text] ->
   ChartOptions
-digitChart utcs xs =
+digitChart utcs xs labels =
   mempty & #charts .~ unnamed [c] & #hudOptions .~ hudOptions
   where
     hudOptions =
       defaultHudOptions
-        & #axes .~ [(5, timeXAxis 8 utcs)]
+        & #axes .~ [(5, timeXAxis 8 utcs), (5, decileYAxis labels)]
     c =
       GlyphChart
         ( defaultGlyphStyle
@@ -218,7 +238,15 @@ digitChart utcs xs =
         )
         (xify xs)
 
--- | pixel chart of digitized vs digitized counts
+decileYAxis :: [Text] -> AxisOptions
+decileYAxis labels =
+         defaultAxisOptions
+                     & #ticks % #style .~ TickPlaced (zip ((+0.5) <$> [0 ..]) labels)
+                     & #ticks % #ltick .~ Nothing
+                     & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
+                     & #place .~ PlaceLeft
+
+-- | Surface chart of quantile vs quantile counts
 --
 -- ![digitSurfaceChart example](other/digitsurface.svg)
 digitSurfaceChart ::

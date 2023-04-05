@@ -40,6 +40,7 @@ library
     mealy,
     numhask-space,
     optics-core,
+    profunctors,
     text >= 1.2 && < 2.1,
     time >= 1.9,
     web-rep >= 0.10.1 && < 0.11,

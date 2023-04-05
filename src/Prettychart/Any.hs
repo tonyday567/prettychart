@@ -14,7 +14,6 @@ module Prettychart.Any
     anyBar2,
     anyLineChart,
     anySurfaceChart,
-    anySurfaceHud,
   )
 where
 
@@ -22,8 +21,6 @@ import Chart
 import Data.Either (rights)
 import Data.Maybe
 import Data.Text (Text, pack, unpack)
-import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
 import Optics.Core
 import Prettychart.Charts
 import Text.Read (readEither)
@@ -33,20 +30,18 @@ import Text.Read (readEither)
 -- >>> :set -Wno-type-defaults
 -- >>> import Chart
 -- >>> import Prettychart.Any
--- >>> import Data.Text (pack, Text)
--- >>> import qualified Data.Text as Text
--- >>> import qualified Data.Text.IO as Text
+-- >>> import Data.Text (unpack)
 
 -- | Attempt to read some text and interpret it as data suitable for charting.
 --
--- In the example below, chartAny determines that the input text is of type [(Double, Double)] and renders a scatter chart of the data.
+-- In the example below, 'anyChart' determines that the input text is of type [(Double, Double)] and renders a scatter chart of the data.
 --
 -- >>> unknownData = (,) <$> (((\x -> sin (pi * x/40)) . fromIntegral <$> ([1..40] :: [Int]))) <*> (((\x -> cos (pi * x/40)) . fromIntegral <$> ([1..40] :: [Int])))
--- >>> let c = anyChart $ pack $ show $ (,) <$> (((\x -> sin (pi * x/40)) . fromIntegral <$> ([1..40] :: [Int]))) <*> (((\x -> cos (pi * x/40)) . fromIntegral <$> ([1..40] :: [Int])))
--- >>> Text.writeFile "other/chartany.svg" $ either id renderChartOptions c
+-- >>> let c = anyChart $ show $ unknownData
+-- >>> writeFile "other/anychart.svg" $ either id (unpack . renderChartOptions) c
 --
--- ![chartAny Example](other/anychart.svg)
-anyChart :: Text -> Either Text ChartOptions
+-- ![anyChart Example](other/anychart.svg)
+anyChart :: String -> Either String ChartOptions
 anyChart t =
   maybe (Left "<html>bad read</html>") Right . listToMaybe . rights $
     [ -- single list
@@ -62,12 +57,12 @@ anyChart t =
     ]
 
 -- | Attempt to read chart data and write to file.
-anyWrite :: FilePath -> Text -> IO ()
-anyWrite f t = Text.writeFile f $ either id renderChartOptions $ anyChart t
+anyWrite :: FilePath -> String -> IO ()
+anyWrite f t = writeFile f $ either id (unpack . renderChartOptions) $ anyChart t
 
--- | Read some Text and try a chart with a particular shape.
-tryChart :: (Read a) => Text -> (a -> ChartOptions) -> Either Text ChartOptions
-tryChart t c = either (Left . Text.pack) (Right . c) $ readEither (unpack t)
+-- | Read a String and try a chart with a particular shape.
+tryChart :: (Read a) => String -> (a -> ChartOptions) -> Either String ChartOptions
+tryChart t c = c <$> readEither t
 
 -- | Default chart for a single list.
 anyList1 :: [Double] -> ChartOptions
@@ -110,6 +105,7 @@ anyBar2 xss =
     ncols = length xss
     nrows = maximum (length <$> xss)
 
+-- | Multiple line chart.
 anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
   mempty

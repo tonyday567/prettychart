@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | serve a chart page with a web socket in it.
+-- | Serve a chart web page with a web socket in it, that accepts 'ChartOptions'.
 module Prettychart.Server
-  ( printChart,
-    startChartServer,
+  ( startChartServer,
     startChartServerWith,
+    printChart,
     chartSocketPage,
   )
 where
@@ -14,13 +14,12 @@ import Box
 import Chart
 import Control.Concurrent.Async
 import Control.Monad (when)
-import Data.Text (pack)
 import Lucid as L
 import Optics.Core
 import Prettychart.Any
 import Web.Rep
 
--- | web-rep Page containing a web socket and javascript needed to run it.
+-- | 'Page' containing a web socket and javascript needed to run it.
 chartSocketPage :: Page
 chartSocketPage =
   bootstrap5Page
@@ -38,9 +37,9 @@ chartSocketPage =
             ]
         )
 
--- | print a chart supplying a consumption hook, and a showable thing that may be something able to be charted. The first argument flags whether to also print the item to stdout.
+-- | Print a chart supplying a 'ChartOptions' consumer, and a showable thing that may be chartable. The first argument flags whether to also print the item to stdout.
 printChart :: (Show a) => Bool -> (ChartOptions -> IO Bool) -> a -> IO ()
-printChart reprint send s = case anyChart (pack $ show s) of
+printChart reprint send s = case anyChart (show s) of
   Left _ -> print s
   Right co -> do
     b <- send co
@@ -48,15 +47,19 @@ printChart reprint send s = case anyChart (pack $ show s) of
 
 -- | Start the chart server. Returns the chart consumer, and a server quit signal effect.
 --
--- > import Chart.Examples
--- > (sendChart, quitChartServer) <- startChartServer
--- > sendChart unitExample
+-- An iconic ghci session transcript:
+--
+-- >> import Chart.Examples
+-- >> (sendChart, quitChartServer) <- startChartServer
+-- >> sendChart unitExample
+--
 -- ... point browser to localhost:9160 ...
--- > quitChartServer
+--
+-- >> quitChartServer
 startChartServer :: IO (ChartOptions -> IO Bool, IO ())
 startChartServer = startChartServerWith defaultSocketConfig chartSocketPage
 
--- | start the chart server protocol with specific configurations.
+-- | Start the chart server protocol with bespoke 'SocketConfig' and 'Page' configurations.
 --
 -- > startChartServerWith (defaultSocketConfig & #port .~ 4567) (defaultSocketPage & #htmlBody %~ divClass_ "row" "bespoke footnote")
 startChartServerWith :: SocketConfig -> Page -> IO (ChartOptions -> IO Bool, IO ())
