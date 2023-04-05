@@ -15,18 +15,18 @@ module Prettychart.Any
     anyLineChart,
     anySurfaceChart,
     anySurfaceHud,
-    )
+  )
 where
 
 import Chart
-import Prettychart.Charts
-import Optics.Core
-import Data.Text ( Text, unpack, pack )
-import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
-import Text.Read (readEither)
 import Data.Either (rights)
 import Data.Maybe
+import Data.Text (Text, pack, unpack)
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
+import Optics.Core
+import Prettychart.Charts
+import Text.Read (readEither)
 
 -- $setup
 --
@@ -82,44 +82,46 @@ anyList2 xss
   | (length xss < 4) && (length (head xss) < 10) = anyBar2 xss
   -- square
   | all (length xss ==) (length <$> xss) =
-    anySurfaceChart xss
+      anySurfaceChart xss
   | otherwise = anyLineChart xss
 
 -- | Bar chart for a labelled list.
 anySingleNamedBarChart :: [(Text, Double)] -> ChartOptions
-anySingleNamedBarChart xs = barChart
-        defaultBarOptions
-        ( BarData
-            [snd <$> xs]
-            (fst <$> xs)
-            []
-        )
+anySingleNamedBarChart xs =
+  barChart
+    defaultBarOptions
+    ( BarData
+        [snd <$> xs]
+        (fst <$> xs)
+        []
+    )
 
 -- | Bar chart for a double list.
 anyBar2 :: [[Double]] -> ChartOptions
-anyBar2 xss = barChart
-        defaultBarOptions
-        ( BarData
-            xss
-            (pack . ("row " <>) . show <$> take nrows [(0 :: Int) ..])
-            (pack . ("col " <>) . show <$> take ncols [(0 :: Int) ..])
-        )
-      where
-        ncols = length xss
-        nrows = maximum (length <$> xss)
+anyBar2 xss =
+  barChart
+    defaultBarOptions
+    ( BarData
+        xss
+        (pack . ("row " <>) . show <$> take nrows [(0 :: Int) ..])
+        (pack . ("col " <>) . show <$> take ncols [(0 :: Int) ..])
+    )
+  where
+    ncols = length xss
+    nrows = maximum (length <$> xss)
 
 anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
-  mempty &
-  #hudOptions .~ defaultHudOptions &
-  #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette1 c) xs) [0..] xss)
+  mempty
+    & #hudOptions .~ defaultHudOptions
+    & #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette1 c) xs) [0 ..] xss)
 
 -- | Default scatter chart for paired data
 anyTuple2 :: [[(Double, Double)]] -> ChartOptions
 anyTuple2 xss =
-  mempty &
-  #hudOptions .~ defaultHudOptions &
-  #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
+  mempty
+    & #hudOptions .~ defaultHudOptions
+    & #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
 
 -- | Default pixel chart for double list.
 anySurfaceChart :: [[Double]] -> ChartOptions
@@ -139,7 +141,7 @@ anySurfaceChart xss = mempty & #charts .~ ct
 
 -- | Number of rows
 rows :: [[Double]] -> Int
-rows xs = maximum $ (0:) $ length <$> xs
+rows xs = maximum $ (0 :) $ length <$> xs
 
 appendZeros :: [[Double]] -> [[Double]]
 appendZeros xs =
@@ -154,14 +156,17 @@ anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
   defaultHudOptions
     & #axes
-      .~ [ (5, defaultAxisOptions
-             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
-             & #place .~ PlaceLeft),
-           (5, defaultAxisOptions
-             & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
-             & #place .~ PlaceBottom)
+      .~ [ ( 5,
+             defaultAxisOptions
+               & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
+               & #place .~ PlaceLeft
+           ),
+           ( 5,
+             defaultAxisOptions
+               & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
+               & #place .~ PlaceBottom
+           )
          ]
   where
     labelsx = pack . show <$> [0 .. (nx - 1)]
     labelsy = pack . show <$> [0 .. (ny - 1)]
-

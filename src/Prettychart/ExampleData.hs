@@ -1,17 +1,17 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Data for testing prettychart.
---
 module Prettychart.ExampleData
   ( getReturns,
     taker,
-  ) where
+  )
+where
 
-import FlatParse.Basic ( Parser, runParser, char, Result(OK) )
 import Chart.FlatParse
 import qualified Data.ByteString as BS
-import Data.Time.Calendar
 import qualified Data.ByteString.Char8 as C
+import Data.Time.Calendar
+import FlatParse.Basic (Parser, Result (OK), char, runParser)
 
 dayP :: Parser e Day
 dayP = do
@@ -31,7 +31,7 @@ dayReturnP :: Parser e (Day, Double)
 dayReturnP = (,) <$> dayP <*> ($(char ',') *> signed double)
 
 -- | Read and parse example data, which is daily stock market returns since 1980.
-getReturns :: IO [(Day,Double)]
+getReturns :: IO [(Day, Double)]
 getReturns = do
   bs <- BS.readFile "other/returns.csv"
   pure $ runParserError dayReturnP <$> C.lines bs
@@ -39,4 +39,3 @@ getReturns = do
 -- | Take the last n of a list.
 taker :: Int -> [a] -> [a]
 taker n = reverse . take n . reverse
-

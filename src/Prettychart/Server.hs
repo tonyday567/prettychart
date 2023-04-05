@@ -2,37 +2,41 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | serve a chart page with a web socket in it.
-
 module Prettychart.Server
   ( printChart,
     startChartServer,
     startChartServerWith,
     chartSocketPage,
-  ) where
+  )
+where
 
+import Box
 import Chart
+import Control.Concurrent.Async
+import Control.Monad (when)
+import Data.Text (pack)
+import Lucid as L
+import Optics.Core
 import Prettychart.Any
 import Web.Rep
-import Optics.Core
-import Lucid as L
-import Box
-import Data.Text (pack)
-import Control.Monad (when)
-import Control.Concurrent.Async
 
 -- | web-rep Page containing a web socket and javascript needed to run it.
 chartSocketPage :: Page
 chartSocketPage =
-  bootstrap5Page &
-  #jsOnLoad .~ mconcat
-  [ webSocket,
-    runScriptJs,
-    refreshJsbJs
-  ] &
-  #htmlBody .~ divClass_ "container"
-  ( mconcat
-    [ divClass_ "row" $ divClass_ "col" (h4_ "prettychart" <> L.with div_ [id_ "prettychart"] mempty)
-    ])
+  bootstrap5Page
+    & #jsOnLoad
+      .~ mconcat
+        [ webSocket,
+          runScriptJs,
+          refreshJsbJs
+        ]
+    & #htmlBody
+      .~ divClass_
+        "container"
+        ( mconcat
+            [ divClass_ "row" $ divClass_ "col" (h4_ "prettychart" <> L.with div_ [id_ "prettychart"] mempty)
+            ]
+        )
 
 -- | print a chart supplying a consumption hook, and a showable thing that may be something able to be charted. The first argument flags whether to also print the item to stdout.
 printChart :: (Show a) => Bool -> (ChartOptions -> IO Bool) -> a -> IO ()

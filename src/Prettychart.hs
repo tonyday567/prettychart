@@ -11,13 +11,13 @@ module Prettychart
     -- * Re-exports
     module Prettychart.Server,
     module Prettychart.Any,
-    module Prettychart.Charts
+    module Prettychart.Charts,
   )
 where
 
-import Prettychart.Server
 import Prettychart.Any
 import Prettychart.Charts
+import Prettychart.Server
 
 -- $usage
 --
