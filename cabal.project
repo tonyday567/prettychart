@@ -1,7 +1,5 @@
 packages:
   prettychart.cabal
-  ../mealy/mealy.cabal
-  ../chart-svg/chart-svg.cabal
 
 allow-newer:
-  clay:text
+  clay:base

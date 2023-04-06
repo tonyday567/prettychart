@@ -240,11 +240,11 @@ digitChart utcs xs labels =
 
 decileYAxis :: [Text] -> AxisOptions
 decileYAxis labels =
-         defaultAxisOptions
-                     & #ticks % #style .~ TickPlaced (zip ((+0.5) <$> [0 ..]) labels)
-                     & #ticks % #ltick .~ Nothing
-                     & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
-                     & #place .~ PlaceLeft
+  defaultAxisOptions
+    & #ticks % #style .~ TickPlaced (zip ((+ 0.5) <$> [0 ..]) labels)
+    & #ticks % #ltick .~ Nothing
+    & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
+    & #place .~ PlaceLeft
 
 -- | Surface chart of quantile vs quantile counts
 --
