@@ -1,0 +1,55 @@
+cabal-version: 2.4
+name:          prettychart
+version:       0.1.0
+synopsis: Pretty print charts from ghci.
+description: Serve and print charts from ghci, with automatic formatting.
+category: project
+author: Tony Day
+maintainer: tonyday567@gmail.com
+copyright: Tony Day (c) 2023
+license: BSD-3-Clause
+homepage: https://github.com/tonyday567/prettycharts#readme
+bug-reports: https://github.com/tonyday567/prettycharts/issues
+build-type: Simple
+extra-doc-files:
+  other/*.svg
+source-repository head
+  type: git
+  location: https://github.com/tonyday567/prettycharts
+
+library
+  hs-source-dirs:
+    src
+  default-extensions:
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+  build-depends:
+    async,
+    base >=4.7 && <5,
+    box,
+    bytestring,
+    chart-svg >= 0.4,
+    containers,
+    flatparse,
+    formatn >= 0.3 && < 0.4,
+    lucid,
+    mealy,
+    numhask-space,
+    optics-core,
+    profunctors,
+    text >= 1.2 && < 2.1,
+    time >= 1.9,
+    web-rep >= 0.10.1 && < 0.11,
+  exposed-modules:
+    Prettychart
+    Prettychart.Any
+    Prettychart.Charts
+    Prettychart.Server
+    Prettychart.ExampleData
+  other-modules:
+  default-language: Haskell2010
+
