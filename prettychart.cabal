@@ -8,14 +8,15 @@ author: Tony Day
 maintainer: tonyday567@gmail.com
 copyright: Tony Day (c) 2023
 license: BSD-3-Clause
-homepage: https://github.com/tonyday567/prettycharts#readme
-bug-reports: https://github.com/tonyday567/prettycharts/issues
+homepage: https://github.com/tonyday567/prettychart#readme
+bug-reports: https://github.com/tonyday567/prettychart/issues
 build-type: Simple
 extra-doc-files:
-  other/*.svg
+  other/*.svg,
+  readme.org
 source-repository head
   type: git
-  location: https://github.com/tonyday567/prettycharts
+  location: https://github.com/tonyday567/prettychart
 
 library
   hs-source-dirs:
