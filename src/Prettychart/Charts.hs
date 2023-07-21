@@ -257,7 +257,7 @@ digitSurfaceChart ::
   [(Int, Int)] ->
   ChartTree
 digitSurfaceChart pixelStyle plo ts names ps =
-  runHud (aspect 1) (hs0 <> hs1) (unnamed cs1)
+  runHud (aspect 1) hs0 (unnamed cs1)
   where
     l = length names - 1
     pts = Point l l
@@ -267,11 +267,10 @@ digitSurfaceChart pixelStyle plo ts names ps =
     f :: Point Double -> Double
     f (Point x y) = fromMaybe 0 $ Map.lookup (floor (1 + x), floor (1 + y)) mapCount
     (hs0, _) = toHuds (qvqHud ts names) gr
-    (cs1, hs1) =
-      surfacefl
+    (cs1,_) =
+      surfacef
         f
         (SurfaceOptions pixelStyle pts gr)
-        plo
 
 qvqHud :: (Text, Text, Text) -> [Text] -> HudOptions
 qvqHud ts labels =
