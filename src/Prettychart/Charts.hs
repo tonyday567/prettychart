@@ -256,7 +256,7 @@ digitSurfaceChart ::
   [Text] ->
   [(Int, Int)] ->
   ChartTree
-digitSurfaceChart pixelStyle plo ts names ps =
+digitSurfaceChart pixelStyle _ ts names ps =
   runHud (aspect 1) hs0 (unnamed cs1)
   where
     l = length names - 1
