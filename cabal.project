@@ -1,11 +1,5 @@
 packages:
   prettychart.cabal
-  ../chart-svg/chart-svg.cabal
-  ../mealy/mealy.cabal
-  ../numhask/numhask.cabal
-  ../numhask-space/numhask-space.cabal
-  ../numhask-array/numhask-array.cabal
-  ../web-rep/web-rep.cabal
 
 allow-newer:
   clay:base

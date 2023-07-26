@@ -1,9 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# HLINT ignore "Eta reduce" #-}
-{-# HLINT ignore "Use ?~" #-}
-{-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- | Various common chart patterns.
@@ -28,7 +24,7 @@ where
 import Chart hiding (abs)
 import Data.Bifunctor
 import Data.Foldable
-import qualified Data.Map.Strict as Map
+import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Data.Time (UTCTime (..))
@@ -100,7 +96,7 @@ histChart r g xs =
     & #hudOptions % #axes .~ [(5, defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
     & #hudOptions % #frames .~ [(20, defaultFrameOptions & #buffer .~ 0.05)]
   where
-    hcuts = gridSensible OuterPos False r (fromIntegral g)
+    hcuts = gridSensible OuterPos False r g
     h = fill hcuts xs
     rects =
       filter (\(Rect _ _ _ y') -> y' /= 0) $
@@ -267,7 +263,7 @@ digitSurfaceChart pixelStyle _ ts names ps =
     f :: Point Double -> Double
     f (Point x y) = fromMaybe 0 $ Map.lookup (floor (1 + x), floor (1 + y)) mapCount
     (hs0, _) = toHuds (qvqHud ts names) gr
-    (cs1,_) =
+    (cs1, _) =
       surfacef
         f
         (SurfaceOptions pixelStyle pts gr)

@@ -8,8 +8,8 @@ module Prettychart.ExampleData
 where
 
 import Chart.FlatParse
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as C
+import Data.ByteString qualified as BS
+import Data.ByteString.Char8 qualified as C
 import Data.Time.Calendar
 import FlatParse.Basic (Parser, Result (OK), char, runParser)
 
