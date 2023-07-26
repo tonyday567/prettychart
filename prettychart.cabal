@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name:          prettychart
-version:       0.1.3.0
+version:       0.1.1.0
 synopsis: Pretty print charts from ghci.
 description: Serve and print charts from ghci, with automatic formatting.
 category: project
