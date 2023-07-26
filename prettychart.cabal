@@ -106,7 +106,7 @@ library
     optics-core ^>=0.4,
     profunctors ^>=5.6.2,
     text >=1.2 && <2.1,
-    time >=1.9,
+    time >=1.9 && <1.14,
     web-rep >=0.10.1 && < 0.11,
   exposed-modules:
     Prettychart
