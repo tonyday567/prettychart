@@ -123,14 +123,14 @@ anyTuple2 xss =
 anySurfaceChart :: [[Double]] -> ChartOptions
 anySurfaceChart xss = mempty & #charts .~ ct
   where
-    ct = runHud (aspect 1) (h0 <> h1) (unnamed c)
+    ct = runHud (aspect 1) h0 (unnamed c)
     (h0, _) = toHuds (anySurfaceHud nrows ncols) gr
     gr = Rect 0 (fromIntegral nrows :: Double) 0 (fromIntegral ncols)
-    (c, h1) =
-      surfacefl
+    (c, _) =
+      surfacef
         (\(Point x y) -> (xss' !! floor x) !! floor y)
         (SurfaceOptions defaultSurfaceStyle (Point nrows ncols) gr)
-        (defaultSurfaceLegendOptions dark "")
+    -- (defaultSurfaceLegendOptions dark "")
     nrows = rows xss
     ncols = length xss
     xss' = appendZeros xss

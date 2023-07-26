@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_HADDOCK prune #-}
 
 -- | A haskell library to serve charts via ghci.
