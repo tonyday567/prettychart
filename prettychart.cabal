@@ -14,7 +14,8 @@ bug-reports: https://github.com/tonyday567/prettychart/issues
 build-type: Simple
 extra-doc-files:
   other/*.svg,
-  readme.org
+  readme.org,
+  ChangeLog.md
 source-repository head
   type: git
   location: https://github.com/tonyday567/prettychart
@@ -91,22 +92,22 @@ library
   hs-source-dirs:
     src
   build-depends:
-    async,
+    async ^>=2.2.4,
     base >=4.7 && <5,
-    box,
-    bytestring,
-    chart-svg >= 0.4,
-    containers,
-    flatparse,
-    formatn >= 0.3 && < 0.4,
-    lucid,
-    mealy,
-    numhask-space,
-    optics-core,
-    profunctors,
-    text >= 1.2 && < 2.1,
-    time >= 1.9,
-    web-rep >= 0.10.1 && < 0.11,
+    box >=0.9 && <0.10,
+    bytestring >=0.11.3 && <0.13,
+    chart-svg >=0.4 && <0.5,
+    containers ^>=0.6,
+    flatparse >=0.4 && <0.6,
+    formatn >=0.3 && <0.4,
+    lucid >=2.9 && <2.12,
+    mealy >=0.4 && <0.5,
+    numhask-space ^>=0.11,
+    optics-core ^>=0.4,
+    profunctors ^>=5.6.2,
+    text >=1.2 && <2.1,
+    time >=1.9,
+    web-rep >=0.10.1 && < 0.11,
   exposed-modules:
     Prettychart
     Prettychart.Any
