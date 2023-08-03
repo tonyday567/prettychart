@@ -1,116 +1,118 @@
 cabal-version: 3.0
-name:          prettychart
-version:       0.1.1.0
-synopsis: Pretty print charts from ghci.
-description: Serve and print charts from ghci, with automatic formatting.
-category: project
+name: prettychart
+version: 0.1.1.0
+license: BSD-3-Clause
+license-file: LICENSE
+copyright: Tony Day (c) 2023
+category: graphcs
 author: Tony Day
 maintainer: tonyday567@gmail.com
-copyright: Tony Day (c) 2023
-license: BSD-3-Clause
-tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
 homepage: https://github.com/tonyday567/prettychart#readme
 bug-reports: https://github.com/tonyday567/prettychart/issues
+synopsis: Pretty print charts from ghci.
+description:
+    Serve and print charts from ghci, with automatic formatting.
 build-type: Simple
+tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
 extra-doc-files:
-  other/*.svg,
-  readme.org,
-  ChangeLog.md
-source-repository head
-  type: git
-  location: https://github.com/tonyday567/prettychart
+    ChangeLog.md
+    other/*.svg
+    readme.org
 
-common ghc2021-stanza
-  if impl(ghc >=9.2)
-    default-language:
-      GHC2021
-  if impl(ghc <9.2)
-    default-language:
-      Haskell2010
-    default-extensions:
-      BangPatterns
-      BinaryLiterals
-      ConstrainedClassMethods
-      ConstraintKinds
-      DeriveDataTypeable
-      DeriveFoldable
-      DeriveFunctor
-      DeriveGeneric
-      DeriveLift
-      DeriveTraversable
-      DoAndIfThenElse
-      EmptyCase
-      EmptyDataDecls
-      EmptyDataDeriving
-      ExistentialQuantification
-      ExplicitForAll
-      FlexibleContexts
-      FlexibleInstances
-      ForeignFunctionInterface
-      GADTSyntax
-      GeneralisedNewtypeDeriving
-      HexFloatLiterals
-      ImplicitPrelude
-      InstanceSigs
-      KindSignatures
-      MonomorphismRestriction
-      MultiParamTypeClasses
-      NamedFieldPuns
-      NamedWildCards
-      NumericUnderscores
-      PatternGuards
-      PolyKinds
-      PostfixOperators
-      RankNTypes
-      RelaxedPolyRec
-      ScopedTypeVariables
-      StandaloneDeriving
-      StarIsType
-      TraditionalRecordSyntax
-      TupleSections
-      TypeApplications
-      TypeOperators
-      TypeSynonymInstances
-  if impl(ghc <9.2) && impl(ghc >=8.10)
-    default-extensions:
-      ImportQualifiedPost
-      StandaloneKindSignatures
+source-repository head
+    type: git
+    location: https://github.com/tonyday567/prettychart
 
 common ghc-options-stanza
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-    -Widentities
-    -Wpartial-fields
+    ghc-options:
+        -Wall
+        -Wcompat
+        -Widentities
+        -Wincomplete-record-updates
+        -Wincomplete-uni-patterns
+        -Wpartial-fields
+        -Wredundant-constraints
+
+common ghc2021-stanza
+    if impl ( ghc >= 9.2 )
+        default-language: GHC2021
+
+    if impl ( ghc < 9.2 )
+        default-language: Haskell2010
+        default-extensions:
+            BangPatterns
+            BinaryLiterals
+            ConstrainedClassMethods
+            ConstraintKinds
+            DeriveDataTypeable
+            DeriveFoldable
+            DeriveFunctor
+            DeriveGeneric
+            DeriveLift
+            DeriveTraversable
+            DoAndIfThenElse
+            EmptyCase
+            EmptyDataDecls
+            EmptyDataDeriving
+            ExistentialQuantification
+            ExplicitForAll
+            FlexibleContexts
+            FlexibleInstances
+            ForeignFunctionInterface
+            GADTSyntax
+            GeneralisedNewtypeDeriving
+            HexFloatLiterals
+            ImplicitPrelude
+            InstanceSigs
+            KindSignatures
+            MonomorphismRestriction
+            MultiParamTypeClasses
+            NamedFieldPuns
+            NamedWildCards
+            NumericUnderscores
+            PatternGuards
+            PolyKinds
+            PostfixOperators
+            RankNTypes
+            RelaxedPolyRec
+            ScopedTypeVariables
+            StandaloneDeriving
+            StarIsType
+            TraditionalRecordSyntax
+            TupleSections
+            TypeApplications
+            TypeOperators
+            TypeSynonymInstances
+
+    if impl ( ghc < 9.2 ) && impl ( ghc >= 8.10 )
+        default-extensions:
+            ImportQualifiedPost
+            StandaloneKindSignatures
 
 library
-  import: ghc2021-stanza
-  import: ghc-options-stanza
-  hs-source-dirs:
-    src
-  build-depends:
-    async ^>=2.2.4,
-    base >=4.7 && <5,
-    box >=0.9 && <0.10,
-    bytestring >=0.11.3 && <0.13,
-    chart-svg >=0.4 && <0.5,
-    containers ^>=0.6,
-    flatparse >=0.4 && <0.6,
-    formatn >=0.3 && <0.4,
-    lucid >=2.9 && <2.12,
-    mealy >=0.4 && <0.5,
-    numhask-space ^>=0.11,
-    optics-core ^>=0.4,
-    profunctors ^>=5.6.2,
-    text >=1.2 && <2.1,
-    time >=1.9 && <1.14,
-    web-rep >=0.10.1 && < 0.11,
-  exposed-modules:
-    Prettychart
-    Prettychart.Any
-    Prettychart.Charts
-    Prettychart.Server
-    Prettychart.ExampleData
+    import: ghc-options-stanza
+    import: ghc2021-stanza
+    hs-source-dirs: src
+    build-depends:
+        , async         ^>=2.2.4
+        , base          >=4.7 && <5
+        , box           >=0.9 && <0.10
+        , bytestring    >=0.11.3 && <0.13
+        , chart-svg     >=0.4 && <0.5
+        , containers    >=0.6 && <0.7
+        , flatparse     >=0.3.5 && <0.6
+        , formatn       >=0.2.1 && <0.4
+        , lucid         >=2.9 && <2.12
+        , mealy         >=0.4 && <0.5
+        , numhask-space >=0.10 && <0.12
+        , optics-core   >=0.4 && <0.5
+        , profunctors   >=5.6.2 && <5.7
+        , text          >=1.2 && <2.1
+        , time          >=1.9 && <1.13
+        , web-rep       >=0.10.1 && <0.11
+    exposed-modules:
+        Prettychart
+        Prettychart.Any
+        Prettychart.Charts
+        Prettychart.ExampleData
+        Prettychart.Server
