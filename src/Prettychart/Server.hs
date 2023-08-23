@@ -14,13 +14,13 @@ import Box
 import Chart
 import Control.Concurrent.Async
 import Control.Monad (when)
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (pack)
+import Data.Text.Encoding
 import MarkupParse
 import Optics.Core hiding (element)
 import Prettychart.Any
 import Web.Rep
-import Data.Text.Encoding
-import Data.ByteString (ByteString)
-import Data.ByteString.Char8 (pack)
 
 -- | 'Page' containing a web socket and javascript needed to run it.
 chartSocketPage :: Maybe ByteString -> Page
@@ -33,7 +33,7 @@ chartSocketPage title =
           refreshJsbJs
         ]
     & #htmlBody
-      .~ element "div" [Attr "class" "container"] ( element "row" [Attr "class" "col"] (maybe mempty (elementc "h4" []) title) <> element_ "div" (pure $ Attr "id" "prettychart"))
+      .~ element "div" [Attr "class" "container"] (element "row" [Attr "class" "col"] (maybe mempty (elementc "h4" []) title) <> element_ "div" (pure $ Attr "id" "prettychart"))
 
 -- | Print a chart supplying a 'ChartOptions' consumer, and a showable thing that may be chartable. The first argument flags whether to also print the item to stdout.
 printChart :: (Show a) => Bool -> (ChartOptions -> IO Bool) -> a -> IO ()

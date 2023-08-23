@@ -57,7 +57,6 @@ yify xs =
   zipWith Point xs [0 ..]
 
 -- | interpret a [Double] as a line with x coordinates of [0..]
---
 simpleLineChart :: Double -> Colour -> [Double] -> Chart
 simpleLineChart w c xs =
   LineChart
@@ -82,7 +81,6 @@ titles3 p (t, x, y) =
   ]
 
 -- | histogram chart
---
 histChart ::
   Range Double ->
   Int ->
@@ -101,7 +99,6 @@ histChart r g xs =
         makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
 
 -- | scatter chart
---
 scatterChart ::
   [[Point Double]] ->
   [Chart]
@@ -126,7 +123,6 @@ gpalette =
   ]
 
 -- | Chart template for quantiles.
---
 quantileChart ::
   [Text] ->
   [LineStyle] ->
@@ -170,7 +166,6 @@ blendMidLineStyles l w (c1, c2) = lo
     lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
 -- | A histogram based on quantile information
---
 quantileHistChart ::
   -- | quantile names
   Maybe [Text] ->
@@ -207,7 +202,6 @@ quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptio
         (zip vs (drop 1 vs))
 
 -- | A chart drawing quantiles of a time series
---
 digitChart ::
   [UTCTime] ->
   [Double] ->
@@ -237,7 +231,6 @@ decileYAxis labels =
     & #place .~ PlaceLeft
 
 -- | Surface chart of quantile vs quantile counts
---
 digitSurfaceChart ::
   SurfaceStyle ->
   SurfaceLegendOptions ->
