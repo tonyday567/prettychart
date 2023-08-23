@@ -1,5 +1,2 @@
 packages:
   prettychart.cabal
-
-allow-newer:
-  clay:base

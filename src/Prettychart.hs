@@ -22,7 +22,7 @@ import Prettychart.Server
 --
 -- >> -- :set -package prettychart
 -- >> import Prettychart
--- >> (sendChart, quitChartServer) <- startChartServer
+-- >> (sendChart, quitChartServer) <- startChartServer (Just "prettychart")
 --
 -- An example from chart-svg ...
 --
@@ -56,7 +56,7 @@ import Prettychart.Server
 -- > :{
 -- > :def! prettychart \_ -> pure $ unlines [
 -- >   "import Prettychart",
--- >   "(sendChart, quitChartServer) <- startChartServer",
+-- >   "(sendChart, quitChartServer) <- startChartServer Nothing",
 -- >   "printc=printChart False sendChart",
 -- >   ":set -interactive-print printc"
 -- >   ]

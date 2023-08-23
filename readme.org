@@ -18,7 +18,7 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 :{
 :def! prettychart \_ -> pure $ unlines [
   "import Prettychart",
-  "(sendChart, quitChartServer) <- startChartServer",
+  "(sendChart, quitChartServer) <- startChartServer Nothing",
   "printc=printChart False sendChart",
   ":set -interactive-print printc"
   ]
@@ -34,9 +34,16 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 :prettychart
 #+end_src
 
+#+RESULTS:
+: ghci| ghci| ghci| ghci| ghci| ghci| ghci|
+: > ghci| ghci| ghci| ghci| ghci|
+: > Setting phasers to stun... (port 9160) (ctrl-c to quit)
+
 #+begin_src haskell :results output
 [1..200]
 #+end_src
+
+#+RESULTS:
 
 #+begin_src haskell :results output
 :noprettychart
@@ -47,7 +54,7 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 The server can also be used to view and develop chart-svg charts.
 
 #+begin_src haskell :results output
-> (sendChart, quitChartServer) <- startChartServer
+> (sendChart, quitChartServer) <- startChartServer (Just "prettychart")
 Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
 
 -- open localhost:9160
@@ -62,6 +69,7 @@ Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
 
 #+end_src
 
+
 * Development
 
 #+begin_src haskell :results output
@@ -73,39 +81,43 @@ Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
 :set -XTupleSections
 :set -XOverloadedLabels
 import Chart hiding (quantiles)
+import Chart.Examples
 import Optics.Core
 import Prettychart.Charts
 import Prettychart.Any
 import Prettychart.ExampleData
 import Prettychart.Server
-import Web.Rep
-import Box
-import FlatParse.Basic hiding (take)
 import Data.Time.Calendar
-import Data.Mealy
-import Data.Maybe
-import Data.Bifunctor
-import NumHask.Space hiding (quantiles)
 import qualified Data.Map as Map
-import Data.FormatN
 import Data.Text (Text,pack)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Time
-import Data.Mealy.Quantiles
 import qualified Data.List as List
 import Control.Category ((>>>))
-import Data.Profunctor
 print "ok"
 #+end_src
 
 #+RESULTS:
-: [1 of 5] Compiling Prettychart.Charts ( src/Prettychart/Charts.hs, interpreted ) [Source file changed]
+: [3 of 5] Compiling Prettychart.ExampleData ( src/Prettychart/ExampleData.hs, interpreted ) [Flags changed]
+: [5 of 5] Compiling Prettychart      ( src/Prettychart.hs, interpreted ) [Flags changed]
 : Ok, five modules loaded.
 : >
-: >
-: >
 : ok
+
+** live
+#+begin_src haskell :results output
+(sendChart, quitChartServer) <- startChartServer Nothing
+#+end_src
+
+#+RESULTS:
+
+#+begin_src haskell :results output
+sendChart $ debugExample quadExample
+#+end_src
+
+#+RESULTS:
+: True
 
 * Prettychart.Any Examples
 ** single list
@@ -256,172 +268,4 @@ either Text.putStrLn (writeChartOptions "other/tdtuple.svg") $ anyChart (pack . 
 
 #+RESULTS:
 [[file:other/tdtuple.svg]]
-
-* Prettychart.Charts Examples
-** Example data
-
-#+begin_src haskell :results output
-r <- getReturns
-length r
-accret = scan (second' (dipure (+))) r
-decay = 0.004
-rs = snd <$> r
-xma = scan (ma decay) rs
-xstd = scan (std decay) rs
-#+end_src
-
-#+RESULTS:
-: 10897
-
-#+begin_src haskell :results output
-xify [1..3]
-#+end_src
-
-#+RESULTS:
-: [Point 0.0 1.0,Point 1.0 2.0,Point 2.0 3.0]
-
-** simpleLineChart
-
-#+begin_src haskell :results output
-c = simpleLineChart 0.01 (palette1 2) (snd <$> accret)
-xaxis = (5, timeXAxis 8 ((\x -> UTCTime x 0) . fst <$> accret))
-yaxis = (5, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
-h = defaultHudOptions & #titles .~ (titles3 8 ("Simple Line Example", "", "accumulated return")) & #axes .~ [xaxis, yaxis]
-simpleLine = mempty & #charts .~ named "line" [c] & #hudOptions .~ h :: ChartOptions
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :file other/simpleline.svg :results output graphics file :exports both
-writeChartOptions "other/simpleline.svg" simpleLine
-#+end_src
-
-#+RESULTS:
-[[file:other/simpleline.svg]]
-
-** histChart
-
-#+begin_src haskell :file other/hist.svg :results output graphics file :exports both
-writeChartOptions "other/hist.svg" $ histChart (Range (-0.04) 0.04) 40 xma
-#+end_src
-
-#+RESULTS:
-[[file:other/hist.svg]]
-
-** scatterChart
-
-#+begin_src haskell
-maVstd = zipWith Point (taker 500 xma) (taker 500 xstd)
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :results output
-c = scatterChart [maVstd]
-xaxis = (5, defaultAxisOptions & #place .~ PlaceBottom & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
-yaxis = (5, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
-h = defaultHudOptions & #titles .~ (titles3 8 ("scatter", "ma", "std")) & #axes .~ [xaxis, yaxis]
-xsChart = mempty & #charts .~ unnamed c & #hudOptions .~ h :: ChartOptions
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :file other/scatter.svg :results output graphics file :exports both
-writeChartOptions "other/scatter.svg" xsChart
-#+end_src
-
-#+RESULTS:
-[[file:other/scatter.svg]]
-** quantileChart
-
-#+begin_src haskell :results output
-qs = [0.01, 0.1, 0.5, 0.9, 0.99]
-qss = fmap (taker 1000) $ List.transpose $ scan (Data.Mealy.Quantiles.quantiles 0.99 qs) (snd <$> r)
-c = quantileChart (quantileNames qs) ( blendMidLineStyles (length qss) 0.005 (Colour 0.7 0.1 0.3 0.5, Colour 0.1 0.4 0.8 1)) qss
-xaxis = (5, timeXAxis 8 (taker 1000 $ (\x -> UTCTime x 0) . fst <$> accret))
-yaxis = (5, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)
-c' = c & (#hudOptions % #axes) .~ [xaxis,yaxis]
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :file other/quantile.svg :results output graphics file :exports both
-writeChartOptions "other/quantile.svg" c'
-#+end_src
-
-#+RESULTS:
-[[file:other/quantile.svg]]
-
-** quantileHistChart
-
-#+begin_src haskell :results output
-qs = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99]
-qslast = Data.Mealy.fold (Data.Mealy.Quantiles.quantiles 0.99 qs) (snd <$> r)
-c = quantileHistChart (Just $ quantileNames qs) qs qslast
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :file other/qhist.svg :results output graphics file :exports both
-writeChartOptions "other/qhist.svg" c
-#+end_src
-
-#+RESULTS:
-[[file:other/qhist.svg]]
-
-** digitChart
-
-#+begin_src haskell :results output
-qs = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-digits = scan (digitize 0.99 qs) (snd <$> taker 1000 r)
-c = digitChart ((\x -> UTCTime x 0) . fst <$> taker 1000 r) (fromIntegral <$> digits) (quantileNames qs)
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :file other/digit.svg :results output graphics file :exports both
-writeChartOptions "other/digit.svg" c
-#+end_src
-
-#+RESULTS:
-[[file:other/digit.svg]]
-
-** digitSurfaceChart
-
-        #+begin_src haskell :results output
-qs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-d1 = ((,) <$> (ma 0.95 >>> digitize 0.99 qs) <*> (std 0.95 >>> digitize 0.99 qs))
-:t d1
-        #+end_src
-
-#+RESULTS:
-: d1 :: Mealy Double (Int, Int)
-
-#+begin_src haskell :results output
-ds = taker 5000 $ scan d1 (snd <$> r)
-c = digitSurfaceChart defaultSurfaceStyle (defaultSurfaceLegendOptions dark "") ("ma versus std", "ma", "std") (quantileNames qs) ds
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :file other/digitsurface.svg :results output graphics file :exports both
-writeChartOptions "other/digitsurface.svg" $ mempty & #charts .~ c
-#+end_src
-
-#+RESULTS:
-[[file:other/digitsurface.svg]]
-
-
-#+begin_src haskell :results output
-import Data.Foldable
-mapCount = foldl' (\m x -> Map.insertWith (+) x 1.0 m) Map.empty ds
-#+end_src
-
-#+begin_src haskell :results output
-mapCount
-#+end_src
-
-
-#+RESULTS:
-: fromList [((1,1),10.0),((1,2),12.0),((1,3),14.0),((1,4),21.0),((1,5),30.0),((1,6),42.0),((1,7),47.0),((1,8),45.0),((1,9),77.0),((1,10),195.0),((2,1),28.0),((2,2),29.0),((2,3),44.0),((2,4),51.0),((2,5),47.0),((2,6),58.0),((2,7),54.0),((2,8),46.0),((2,9),75.0),((2,10),99.0),((3,1),58.0),((3,2),53.0),((3,3),49.0),((3,4),45.0),((3,5),75.0),((3,6),37.0),((3,7),43.0),((3,8),45.0),((3,9),47.0),((3,10),45.0),((4,1),97.0),((4,2),65.0),((4,3),45.0),((4,4),49.0),((4,5),68.0),((4,6),37.0),((4,7),47.0),((4,8),41.0),((4,9),31.0),((4,10),34.0),((5,1),141.0),((5,2),88.0),((5,3),57.0),((5,4),48.0),((5,5),47.0),((5,6),45.0),((5,7),38.0),((5,8),43.0),((5,9),29.0),((5,10),28.0),((6,1),129.0),((6,2),101.0),((6,3),55.0),((6,4),39.0),((6,5),51.0),((6,6),43.0),((6,7),43.0),((6,8),28.0),((6,9),24.0),((6,10),23.0),((7,1),103.0),((7,2),73.0),((7,3),61.0),((7,4),51.0),((7,5),49.0),((7,6),38.0),((7,7),34.0),((7,8),24.0),((7,9),14.0),((7,10),8.0),((8,1),117.0),((8,2),99.0),((8,3),56.0),((8,4),62.0),((8,5),43.0),((8,6),35.0),((8,7),40.0),((8,8),29.0),((8,9),19.0),((8,10),9.0),((9,1),108.0),((9,2),65.0),((9,3),76.0),((9,4),49.0),((9,5),53.0),((9,6),48.0),((9,7),27.0),((9,8),15.0),((9,9),11.0),((9,10),9.0),((10,1),75.0),((10,2),37.0),((10,3),60.0),((10,4),55.0),((10,5),37.0),((10,6),80.0),((10,7),59.0),((10,8),23.0),((10,9),9.0),((10,10),5.0)]
 

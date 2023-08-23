@@ -57,8 +57,6 @@ yify xs =
   zipWith Point xs [0 ..]
 
 -- | interpret a [Double] as a line with x coordinates of [0..]
---
--- ![simpleLineChart example](other/simpleline.svg)
 simpleLineChart :: Double -> Colour -> [Double] -> Chart
 simpleLineChart w c xs =
   LineChart
@@ -83,8 +81,6 @@ titles3 p (t, x, y) =
   ]
 
 -- | histogram chart
---
--- ![histChart example](other/hist.svg)
 histChart ::
   Range Double ->
   Int ->
@@ -103,8 +99,6 @@ histChart r g xs =
         makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
 
 -- | scatter chart
---
--- ![scatterChart example](other/scatter.svg)
 scatterChart ::
   [[Point Double]] ->
   [Chart]
@@ -129,8 +123,6 @@ gpalette =
   ]
 
 -- | Chart template for quantiles.
---
--- ![quantileChart example](other/quantile.svg)
 quantileChart ::
   [Text] ->
   [LineStyle] ->
@@ -147,7 +139,7 @@ quantileChart names ls xs = mempty & #hudOptions .~ h & #charts .~ unnamed c
                        & #vgap .~ 0.05
                        & #innerPad .~ 0.2
                        & #place .~ PlaceRight
-                       & #content .~ zip names ((: []) <$> c)
+                       & #legendCharts .~ zip names ((: []) <$> c)
                    )
                  ]
           )
@@ -164,7 +156,7 @@ quantileChart names ls xs = mempty & #hudOptions .~ h & #charts .~ unnamed c
 quantileNames :: (Functor f) => f Double -> f Text
 quantileNames qs = percent commaSF Nothing <$> qs
 
--- | /blendMidLineStyle n w/ produces n lines of width w interpolated between two colors.
+-- | @blendMidLineStyle n w@ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
 blendMidLineStyles l w (c1, c2) = lo
   where
@@ -174,8 +166,6 @@ blendMidLineStyles l w (c1, c2) = lo
     lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
 -- | A histogram based on quantile information
---
--- ![quantileHistChart example](other/qhist.svg)
 quantileHistChart ::
   -- | quantile names
   Maybe [Text] ->
@@ -212,8 +202,6 @@ quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptio
         (zip vs (drop 1 vs))
 
 -- | A chart drawing quantiles of a time series
---
--- ![digitChart example](other/digit.svg)
 digitChart ::
   [UTCTime] ->
   [Double] ->
@@ -243,8 +231,6 @@ decileYAxis labels =
     & #place .~ PlaceLeft
 
 -- | Surface chart of quantile vs quantile counts
---
--- ![digitSurfaceChart example](other/digitsurface.svg)
 digitSurfaceChart ::
   SurfaceStyle ->
   SurfaceLegendOptions ->
