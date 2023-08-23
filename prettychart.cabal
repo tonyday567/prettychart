@@ -1,10 +1,10 @@
 cabal-version: 3.0
 name: prettychart
-version: 0.1.1.0
+version: 0.1.2.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2023
-category: graphcs
+category: graphics
 author: Tony Day
 maintainer: tonyday567@gmail.com
 homepage: https://github.com/tonyday567/prettychart#readme
@@ -94,25 +94,20 @@ library
     import: ghc2021-stanza
     hs-source-dirs: src
     build-depends:
-        , async         ^>=2.2.4
+        , async         >=2.2.4 && <2.3
         , base          >=4.7 && <5
         , box           >=0.9 && <0.10
         , bytestring    >=0.11.3 && <0.13
-        , chart-svg     >=0.4 && <0.5
+        , chart-svg     >=0.5 && <0.6
         , containers    >=0.6 && <0.7
-        , flatparse     >=0.3.5 && <0.6
-        , formatn       >=0.2.1 && <0.4
-        , lucid         >=2.9 && <2.12
-        , mealy         >=0.4 && <0.5
+        , markup-parse  >=0.1 && <0.2
         , numhask-space >=0.10 && <0.12
         , optics-core   >=0.4 && <0.5
-        , profunctors   >=5.6.2 && <5.7
         , text          >=1.2 && <2.1
         , time          >=1.9 && <1.13
-        , web-rep       >=0.10.1 && <0.11
+        , web-rep       >=0.10.1 && <0.12
     exposed-modules:
         Prettychart
         Prettychart.Any
         Prettychart.Charts
-        Prettychart.ExampleData
         Prettychart.Server
