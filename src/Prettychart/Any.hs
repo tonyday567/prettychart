@@ -124,7 +124,7 @@ anySurfaceChart :: [[Double]] -> ChartOptions
 anySurfaceChart xss = mempty & #charts .~ ct
   where
     ct = runHud (aspect 1) h0 (unnamed c)
-    (h0, _) = toHuds (anySurfaceHud nrows ncols) gr
+    (h0, _) = toHuds (anySurfaceHud nrows ncols) (FixedAspect 1) gr
     gr = Rect 0 (fromIntegral nrows :: Double) 0 (fromIntegral ncols)
     (c, _) =
       surfacef
@@ -153,14 +153,12 @@ anySurfaceHud nx ny =
   defaultHudOptions
     & #axes
       .~ [ ( 5,
-             defaultAxisOptions
+             defaultYAxisOptions
                & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
-               & #place .~ PlaceLeft
            ),
            ( 5,
-             defaultAxisOptions
+             defaultXAxisOptions
                & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
-               & #place .~ PlaceBottom
            )
          ]
   where

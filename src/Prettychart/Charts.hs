@@ -66,7 +66,7 @@ simpleLineChart w c xs =
 -- | Create a hud that has time as the x-axis, based on supplied UTCTime list.
 timeXAxis :: Int -> [UTCTime] -> AxisOptions
 timeXAxis nticks ds =
-  defaultAxisOptions
+  defaultXAxisOptions
     & #ticks % #style
       .~ TickPlaced
         ( first (* fromIntegral (length ds)) <$> placedTimeLabelContinuous PosInnerOnly Nothing nticks (unsafeSpace1 ds)
@@ -89,7 +89,7 @@ histChart ::
 histChart r g xs =
   mempty
     & #charts .~ named "histogram" [RectChart defaultRectStyle rects]
-    & #hudOptions % #axes .~ [(5, defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
+    & #hudOptions % #axes .~ [(5, defaultXAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
     & #hudOptions % #frames .~ [(20, defaultFrameOptions & #buffer .~ 0.05)]
   where
     hcuts = gridSensible OuterPos False r g
@@ -102,11 +102,11 @@ histChart r g xs =
 scatterChart ::
   [[Point Double]] ->
   [Chart]
-scatterChart xss = zipWith GlyphChart (gpaletteStyle 0.04 0.01) xss
+scatterChart xss = zipWith (\(s,sh) ps -> glyphChart1 s sh ps) (gpaletteStyle 0.04 0.01) xss
 
 -- | GlyphStyle palette
-gpaletteStyle :: Double -> Double -> [GlyphStyle]
-gpaletteStyle s bs = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ palette1 c & #shape .~ g & #borderSize .~ bs) [0 ..] gpalette
+gpaletteStyle :: Double -> Double -> [(Style,GlyphShape)]
+gpaletteStyle s bs = zipWith (\c g -> (defaultGlyphStyle & #size .~ s & #color .~ palette1 c & #shape .~ g & #borderSize .~ bs, g)) [0 ..] gpalette
 
 -- | Glyph palette
 gpalette :: [GlyphShape]
@@ -125,7 +125,7 @@ gpalette =
 -- | Chart template for quantiles.
 quantileChart ::
   [Text] ->
-  [LineStyle] ->
+  [Style] ->
   [[Double]] ->
   ChartOptions
 quantileChart names ls xs = mempty & #hudOptions .~ h & #charts .~ unnamed c
@@ -157,7 +157,7 @@ quantileNames :: (Functor f) => f Double -> f Text
 quantileNames qs = percent commaSF Nothing <$> qs
 
 -- | @blendMidLineStyle n w@ produces n lines of width w interpolated between two colors.
-blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
+blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [Style]
 blendMidLineStyles l w (c1, c2) = lo
   where
     m = (fromIntegral l - 1) / 2 :: Double
@@ -193,7 +193,7 @@ quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptio
                    names
                )
              ]
-    axis0 = defaultAxisOptions & #ticks % #ltick .~ Nothing & (#ticks % #ttick) %~ fmap (first (#size .~ 0.03))
+    axis0 = defaultXAxisOptions & #ticks % #ltick .~ Nothing & (#ticks % #ttick) %~ fmap (first (#size .~ 0.03))
     chart' = RectChart defaultRectStyle hr
     hr =
       zipWith
@@ -214,21 +214,20 @@ digitChart utcs xs labels =
       defaultHudOptions
         & #axes .~ [(5, timeXAxis 8 utcs), (5, decileYAxis labels)]
     c =
-      GlyphChart
+      glyphChart1
         ( defaultGlyphStyle
             & #color .~ Colour 0 0 1 1
-            & #shape .~ CircleGlyph
             & #size .~ 0.01
         )
+        CircleGlyph
         (xify xs)
 
 decileYAxis :: [Text] -> AxisOptions
 decileYAxis labels =
-  defaultAxisOptions
+  defaultYAxisOptions
     & #ticks % #style .~ TickPlaced (zip ((+ 0.5) <$> [0 ..]) labels)
     & #ticks % #ltick .~ Nothing
     & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
-    & #place .~ PlaceLeft
 
 -- | Surface chart of quantile vs quantile counts
 digitSurfaceChart ::
@@ -248,7 +247,7 @@ digitSurfaceChart pixelStyle _ ts names ps =
     mapCount = foldl' (\m x -> Map.insertWith (+) x 1.0 m) Map.empty ps
     f :: Point Double -> Double
     f (Point x y) = fromMaybe 0 $ Map.lookup (floor (1 + x), floor (1 + y)) mapCount
-    (hs0, _) = toHuds (qvqHud ts names) gr
+    (hs0, _) = toHuds (qvqHud ts names) (FixedAspect 1) gr
     (cs1, _) =
       surfacef
         f
@@ -260,15 +259,14 @@ qvqHud ts labels =
     & #titles .~ titles3 5 ts
     & #axes
       .~ ( (3,)
-             <$> [ defaultAxisOptions
+             <$> [ defaultYAxisOptions
                      & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
                      & #ticks % #ltick .~ Nothing
                      & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
                      & #place .~ PlaceLeft,
-                   defaultAxisOptions
+                   defaultXAxisOptions
                      & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
                      & #ticks % #ltick .~ Nothing
                      & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
-                     & #place .~ PlaceBottom
                  ]
          )
