@@ -76,7 +76,7 @@ anyList2 :: [[Double]] -> ChartOptions
 anyList2 xss
   | (length xss < 4) && (length (head xss) < 10) = anyBar2 xss
   -- square
-  | all (length xss ==) (length <$> xss) =
+  | all ((length xss ==) . length) xss =
       anySurfaceChart xss
   | otherwise = anyLineChart xss
 
@@ -123,8 +123,8 @@ anyTuple2 xss =
 anySurfaceChart :: [[Double]] -> ChartOptions
 anySurfaceChart xss = mempty & #charts .~ ct
   where
-    ct = runHud (aspect 1) h0 (unnamed c)
-    (h0, _) = toHuds (anySurfaceHud nrows ncols) (FixedAspect 1) gr
+    ct = runHud one h0 (unnamed c)
+    (_, h0) = toHuds (anySurfaceHud nrows ncols) gr
     gr = Rect 0 (fromIntegral nrows :: Double) 0 (fromIntegral ncols)
     (c, _) =
       surfacef

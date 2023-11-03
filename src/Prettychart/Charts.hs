@@ -238,7 +238,7 @@ digitSurfaceChart ::
   [(Int, Int)] ->
   ChartTree
 digitSurfaceChart pixelStyle _ ts names ps =
-  runHud (aspect 1) hs0 (unnamed cs1)
+  runHud one hs0 (unnamed cs1)
   where
     l = length names - 1
     pts = Point l l
@@ -247,7 +247,7 @@ digitSurfaceChart pixelStyle _ ts names ps =
     mapCount = foldl' (\m x -> Map.insertWith (+) x 1.0 m) Map.empty ps
     f :: Point Double -> Double
     f (Point x y) = fromMaybe 0 $ Map.lookup (floor (1 + x), floor (1 + y)) mapCount
-    (hs0, _) = toHuds (qvqHud ts names) (FixedAspect 1) gr
+    (_, hs0) = toHuds (qvqHud ts names) gr
     (cs1, _) =
       surfacef
         f
