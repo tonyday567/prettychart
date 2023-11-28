@@ -131,7 +131,7 @@ anySurfaceChart xss = mempty & #charts .~ ct
         (\(Point x y) -> (xss' !! floor x) !! floor y)
         (SurfaceOptions defaultSurfaceStyle (Point nrows ncols) gr)
     -- (defaultSurfaceLegendOptions dark "")
-    nrows = rows xss
+    nrows = Prettychart.Any.rows xss
     ncols = length xss
     xss' = appendZeros xss
 
@@ -143,7 +143,7 @@ appendZeros :: [[Double]] -> [[Double]]
 appendZeros xs =
   ( \x ->
       take
-        (rows xs)
+        (Prettychart.Any.rows xs)
         (x <> repeat 0)
   )
     <$> xs
