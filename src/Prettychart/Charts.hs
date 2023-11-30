@@ -10,7 +10,6 @@ module Prettychart.Charts
     timeXAxis,
     titles3,
     histChart,
-    gpalette,
     scatterChart,
     blendMidLineStyles,
     quantileNames,
@@ -106,21 +105,7 @@ scatterChart xss = zipWith (\(s,sh) ps -> glyphChart1 s sh ps) (gpaletteStyle 0.
 
 -- | GlyphStyle palette
 gpaletteStyle :: Double -> Double -> [(Style,GlyphShape)]
-gpaletteStyle s bs = zipWith (\c g -> (defaultGlyphStyle & #size .~ s & #color .~ palette1 c & #shape .~ g & #borderSize .~ bs, g)) [0 ..] gpalette
-
--- | Glyph palette
-gpalette :: [GlyphShape]
-gpalette =
-  [ CircleGlyph,
-    SquareGlyph,
-    RectSharpGlyph 0.75,
-    RectRoundedGlyph 0.75 0.01 0.01,
-    EllipseGlyph 0.75,
-    VLineGlyph,
-    HLineGlyph,
-    TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0),
-    PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder
-  ]
+gpaletteStyle s bs = zipWith (\c g -> (defaultGlyphStyle & #size .~ s & #color .~ palette c & #shape .~ g & #borderSize .~ bs, g)) [0 ..] (gpalette <$> [0..8])
 
 -- | Chart template for quantiles.
 quantileChart ::

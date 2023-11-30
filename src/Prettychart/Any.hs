@@ -110,7 +110,7 @@ anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
   mempty
     & #hudOptions .~ defaultHudOptions
-    & #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette1 c) xs) [0 ..] xss)
+    & #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette c) xs) [0 ..] xss)
 
 -- | Default scatter chart for paired data
 anyTuple2 :: [[(Double, Double)]] -> ChartOptions
