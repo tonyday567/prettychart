@@ -72,11 +72,11 @@ timeXAxis nticks ds =
         )
 
 -- | common pattern of chart title, x-axis title and y-axis title
-titles3 :: Priority -> (Text, Text, Text) -> [(Priority, Title)]
+titles3 :: Double -> (Text, Text, Text) -> [Priority Title]
 titles3 p (t, x, y) =
-  [ (p, defaultTitle t & #style % #size .~ 0.08),
-    (p, defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.05),
-    (p, defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.05)
+  [ Priority p (defaultTitle t & #style % #size .~ 0.08),
+    Priority p (defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.05),
+    Priority p (defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.05)
   ]
 
 -- | histogram chart
@@ -87,9 +87,9 @@ histChart ::
   ChartOptions
 histChart r g xs =
   mempty
-    & #charts .~ named "histogram" [RectChart defaultRectStyle rects]
-    & #hudOptions % #axes .~ [(5, defaultXAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
-    & #hudOptions % #frames .~ [(20, defaultFrameOptions & #buffer .~ 0.05)]
+    & #chartTree .~ named "histogram" [RectChart defaultRectStyle rects]
+    & #hudOptions % #axes .~ [Priority 5 (defaultXAxisOptions & #ticks % #lineTick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
+    & #hudOptions % #frames .~ [Priority 20 (defaultFrameOptions & #buffer .~ 0.05)]
   where
     hcuts = gridSensible OuterPos False r g
     h = fill hcuts xs
@@ -101,7 +101,7 @@ histChart r g xs =
 scatterChart ::
   [[Point Double]] ->
   [Chart]
-scatterChart xss = zipWith (\(s,sh) ps -> glyphChart1 s sh ps) (gpaletteStyle 0.04 0.01) xss
+scatterChart xss = zipWith (\(s,sh) ps -> GlyphChart (s & set #shape sh) ps) (gpaletteStyle 0.04 0.01) xss
 
 -- | GlyphStyle palette
 gpaletteStyle :: Double -> Double -> [(Style,GlyphShape)]
@@ -113,19 +113,18 @@ quantileChart ::
   [Style] ->
   [[Double]] ->
   ChartOptions
-quantileChart names ls xs = mempty & #hudOptions .~ h & #charts .~ unnamed c
+quantileChart names ls xs = mempty & #hudOptions .~ h & #chartTree .~ unnamed c
   where
     h =
       defaultHudOptions
         & ( #legends
-              .~ [ ( 10,
+              .~ [ Priority 10 $
                      defaultLegendOptions
                        & #textStyle % #size .~ 0.1
                        & #vgap .~ 0.05
                        & #innerPad .~ 0.2
                        & #place .~ PlaceRight
                        & #legendCharts .~ zip names ((: []) <$> c)
-                   )
                  ]
           )
     c =
@@ -159,12 +158,12 @@ quantileHistChart ::
   -- | quantile values
   [Double] ->
   ChartOptions
-quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptions .~ hudOptions
+quantileHistChart names qs vs = mempty & #chartTree .~ unnamed [chart'] & #hudOptions .~ hudOptions
   where
     hudOptions =
       defaultHudOptions
         & #axes
-          .~ [ ( 5,
+          .~ [ Priority 5 $
                  maybe
                    ( axis0
                        & #ticks % #style
@@ -176,9 +175,8 @@ quantileHistChart names qs vs = mempty & #charts .~ unnamed [chart'] & #hudOptio
                            .~ TickPlaced (zip vs x)
                    )
                    names
-               )
              ]
-    axis0 = defaultXAxisOptions & #ticks % #ltick .~ Nothing & (#ticks % #ttick) %~ fmap (first (#size .~ 0.03))
+    axis0 = defaultXAxisOptions & #ticks % #lineTick .~ Nothing & set (#ticks % #textTick %? #item % #size) 0.03
     chart' = RectChart defaultRectStyle hr
     hr =
       zipWith
@@ -193,26 +191,26 @@ digitChart ::
   [Text] ->
   ChartOptions
 digitChart utcs xs labels =
-  mempty & #charts .~ unnamed [c] & #hudOptions .~ hudOptions
+  mempty & #chartTree .~ unnamed [c] & #hudOptions .~ hudOptions
   where
     hudOptions =
       defaultHudOptions
-        & #axes .~ [(5, timeXAxis 8 utcs), (5, decileYAxis labels)]
+        & #axes .~ [Priority 5 (timeXAxis 8 utcs), Priority 5 (decileYAxis labels)]
     c =
-      glyphChart1
+      GlyphChart
         ( defaultGlyphStyle
             & #color .~ Colour 0 0 1 1
             & #size .~ 0.01
+            & #shape .~ CircleGlyph
         )
-        CircleGlyph
         (xify xs)
 
 decileYAxis :: [Text] -> AxisOptions
 decileYAxis labels =
   defaultYAxisOptions
     & #ticks % #style .~ TickPlaced (zip ((+ 0.5) <$> [0 ..]) labels)
-    & #ticks % #ltick .~ Nothing
-    & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
+    & #ticks % #lineTick .~ Nothing
+    & #ticks % #textTick %? #item % #size .~ 0.03
 
 -- | Surface chart of quantile vs quantile counts
 digitSurfaceChart ::
@@ -223,7 +221,7 @@ digitSurfaceChart ::
   [(Int, Int)] ->
   ChartTree
 digitSurfaceChart pixelStyle _ ts names ps =
-  runHud one hs0 (unnamed cs1)
+  runHudWith one hs0 (unnamed cs1)
   where
     l = length names - 1
     pts = Point l l
@@ -243,15 +241,15 @@ qvqHud ts labels =
   defaultHudOptions
     & #titles .~ titles3 5 ts
     & #axes
-      .~ ( (3,)
+      .~ ( Priority 3
              <$> [ defaultYAxisOptions
                      & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
-                     & #ticks % #ltick .~ Nothing
-                     & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
+                     & #ticks % #lineTick .~ Nothing
+                     & #ticks % #textTick %? #item % #size .~ 0.03
                      & #place .~ PlaceLeft,
                    defaultXAxisOptions
                      & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
-                     & #ticks % #ltick .~ Nothing
-                     & #ticks % #ttick %~ fmap (first (#size .~ 0.03))
+                     & #ticks % #lineTick .~ Nothing
+                     & #ticks % #textTick %? #item % #size .~ 0.03
                  ]
          )

@@ -1,3 +1,4 @@
 packages:
   prettychart.cabal
   ../chart-svg/chart-svg.cabal
+  ../numhask-space/numhask-space.cabal

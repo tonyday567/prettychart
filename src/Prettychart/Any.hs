@@ -110,20 +110,20 @@ anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
   mempty
     & #hudOptions .~ defaultHudOptions
-    & #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette c) xs) [0 ..] xss)
+    & #chartTree .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette c) xs) [0 ..] xss)
 
 -- | Default scatter chart for paired data
 anyTuple2 :: [[(Double, Double)]] -> ChartOptions
 anyTuple2 xss =
   mempty
     & #hudOptions .~ defaultHudOptions
-    & #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
+    & #chartTree .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
 
 -- | Default pixel chart for double list.
 anySurfaceChart :: [[Double]] -> ChartOptions
-anySurfaceChart xss = mempty & #charts .~ ct
+anySurfaceChart xss = mempty & #chartTree .~ ct
   where
-    ct = runHud one h0 (unnamed c)
+    ct = runHudWith one h0 (unnamed c)
     (_, h0) = toHuds (anySurfaceHud nrows ncols) gr
     gr = Rect 0 (fromIntegral nrows :: Double) 0 (fromIntegral ncols)
     (c, _) =
@@ -152,12 +152,12 @@ anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
   defaultHudOptions
     & #axes
-      .~ [ ( 5,
-             defaultYAxisOptions
+      .~ [ Priority 5
+             (defaultYAxisOptions
                & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
            ),
-           ( 5,
-             defaultXAxisOptions
+           Priority 5
+             (defaultXAxisOptions
                & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
            )
          ]
