@@ -103,7 +103,7 @@ library
         , markup-parse  >=0.1 && <0.2
         , numhask-space >=0.10 && <0.12
         , optics-core   >=0.4 && <0.5
-        , text          >=1.2 && <2.1
+        , text          >=1.2 && <2.2
         , time          >=1.9 && <1.13
         , web-rep       >=0.10.1 && <0.12
     exposed-modules:

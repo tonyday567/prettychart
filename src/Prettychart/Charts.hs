@@ -66,7 +66,7 @@ simpleLineChart w c xs =
 timeXAxis :: Int -> [UTCTime] -> AxisOptions
 timeXAxis nticks ds =
   defaultXAxisOptions
-    & #ticks % #style
+    & #ticks % #tick
       .~ TickPlaced
         ( first (* fromIntegral (length ds)) <$> placedTimeLabelContinuous PosInnerOnly Nothing nticks (unsafeSpace1 ds)
         )
@@ -88,7 +88,7 @@ histChart ::
 histChart r g xs =
   mempty
     & #chartTree .~ named "histogram" [RectChart defaultRectStyle rects]
-    & #hudOptions % #axes .~ [Priority 5 (defaultXAxisOptions & #ticks % #lineTick .~ Nothing & #ticks % #style .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
+    & #hudOptions % #axes .~ [Priority 5 (defaultXAxisOptions & #ticks % #lineTick .~ Nothing & #ticks % #tick .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
     & #hudOptions % #frames .~ [Priority 20 (defaultFrameOptions & #buffer .~ 0.05)]
   where
     hcuts = gridSensible OuterPos False r g
@@ -166,17 +166,17 @@ quantileHistChart names qs vs = mempty & #chartTree .~ unnamed [chart'] & #hudOp
           .~ [ Priority 5 $
                  maybe
                    ( axis0
-                       & #ticks % #style
+                       & #ticks % #tick
                          .~ TickRound (FormatN FSDecimal (Just 3) 4 True True) 6 TickExtend
                    )
                    ( \x ->
                        axis0
-                         & #ticks % #style
+                         & #ticks % #tick
                            .~ TickPlaced (zip vs x)
                    )
                    names
              ]
-    axis0 = defaultXAxisOptions & #ticks % #lineTick .~ Nothing & set (#ticks % #textTick %? #item % #size) 0.03
+    axis0 = defaultXAxisOptions & #ticks % #lineTick .~ Nothing & set (#ticks % #textTick %? #style % #size) 0.03
     chart' = RectChart defaultRectStyle hr
     hr =
       zipWith
@@ -208,9 +208,9 @@ digitChart utcs xs labels =
 decileYAxis :: [Text] -> AxisOptions
 decileYAxis labels =
   defaultYAxisOptions
-    & #ticks % #style .~ TickPlaced (zip ((+ 0.5) <$> [0 ..]) labels)
+    & #ticks % #tick .~ TickPlaced (zip ((+ 0.5) <$> [0 ..]) labels)
     & #ticks % #lineTick .~ Nothing
-    & #ticks % #textTick %? #item % #size .~ 0.03
+    & #ticks % #textTick %? #style % #size .~ 0.03
 
 -- | Surface chart of quantile vs quantile counts
 digitSurfaceChart ::
@@ -243,13 +243,13 @@ qvqHud ts labels =
     & #axes
       .~ ( Priority 3
              <$> [ defaultYAxisOptions
-                     & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
+                     & #ticks % #tick .~ TickPlaced (zip [0 ..] labels)
                      & #ticks % #lineTick .~ Nothing
-                     & #ticks % #textTick %? #item % #size .~ 0.03
+                     & #ticks % #textTick %? #style % #size .~ 0.03
                      & #place .~ PlaceLeft,
                    defaultXAxisOptions
-                     & #ticks % #style .~ TickPlaced (zip [0 ..] labels)
+                     & #ticks % #tick .~ TickPlaced (zip [0 ..] labels)
                      & #ticks % #lineTick .~ Nothing
-                     & #ticks % #textTick %? #item % #size .~ 0.03
+                     & #ticks % #textTick %? #style % #size .~ 0.03
                  ]
          )

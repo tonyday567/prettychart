@@ -73,12 +73,13 @@ anyList1 xs
 
 -- | Default chart for a double list.
 anyList2 :: [[Double]] -> ChartOptions
-anyList2 xss
-  | (length xss < 4) && (length (head xss) < 10) = anyBar2 xss
+anyList2 [] = mempty
+anyList2 l@(xs:xss)
+  | (length xss < 4) && (length xs < 10) = anyBar2 l
   -- square
-  | all ((length xss ==) . length) xss =
-      anySurfaceChart xss
-  | otherwise = anyLineChart xss
+  | all ((length l ==) . length) l =
+      anySurfaceChart l
+  | otherwise = anyLineChart l
 
 -- | Bar chart for a labelled list.
 anySingleNamedBarChart :: [(Text, Double)] -> ChartOptions
@@ -154,11 +155,11 @@ anySurfaceHud nx ny =
     & #axes
       .~ [ Priority 5
              (defaultYAxisOptions
-               & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
+               & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
            ),
            Priority 5
              (defaultXAxisOptions
-               & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
+               & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
            )
          ]
   where
