@@ -101,11 +101,11 @@ histChart r g xs =
 scatterChart ::
   [[Point Double]] ->
   [Chart]
-scatterChart xss = zipWith (\(s,sh) ps -> GlyphChart (s & set #shape sh) ps) (gpaletteStyle 0.04 0.01) xss
+scatterChart xss = zipWith (\(s, sh) ps -> GlyphChart (s & set #shape sh) ps) (gpaletteStyle 0.04 0.01) xss
 
 -- | GlyphStyle palette
-gpaletteStyle :: Double -> Double -> [(Style,GlyphShape)]
-gpaletteStyle s bs = zipWith (\c g -> (defaultGlyphStyle & #size .~ s & #color .~ palette c & #shape .~ g & #borderSize .~ bs, g)) [0 ..] (gpalette <$> [0..8])
+gpaletteStyle :: Double -> Double -> [(Style, GlyphShape)]
+gpaletteStyle s bs = zipWith (\c g -> (defaultGlyphStyle & #size .~ s & #color .~ palette c & #shape .~ g & #borderSize .~ bs, g)) [0 ..] (gpalette <$> [0 .. 8])
 
 -- | Chart template for quantiles.
 quantileChart ::

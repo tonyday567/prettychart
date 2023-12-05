@@ -74,7 +74,7 @@ anyList1 xs
 -- | Default chart for a double list.
 anyList2 :: [[Double]] -> ChartOptions
 anyList2 [] = mempty
-anyList2 l@(xs:xss)
+anyList2 l@(xs : xss)
   | (length xss < 4) && (length xs < 10) = anyBar2 l
   -- square
   | all ((length l ==) . length) l =
@@ -153,14 +153,16 @@ anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
   defaultHudOptions
     & #axes
-      .~ [ Priority 5
-             (defaultYAxisOptions
-               & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
-           ),
-           Priority 5
-             (defaultXAxisOptions
-               & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
-           )
+      .~ [ Priority
+             5
+             ( defaultYAxisOptions
+                 & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
+             ),
+           Priority
+             5
+             ( defaultXAxisOptions
+                 & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
+             )
          ]
   where
     labelsx = pack . show <$> [0 .. (nx - 1)]
