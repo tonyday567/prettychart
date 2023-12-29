@@ -9,6 +9,24 @@ This library contains:
 - Some useful chart patterns that didn't make the cut in chart-svg (See Chartpretty.Charts)
 
 * Usage
+** live coding
+
+The server can be used to view and develop chart-svg charts.
+
+#+begin_src haskell :results output
+> (display, quit) <- startChartServer (Just "prettychart")
+Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
+
+-- open localhost:9160
+-- developing and sending a chart to the server
+
+> import Chart.Examples
+> display lineExample
+
+> quit
+
+#+end_src
+
 ** ghci integration
 
 Add this to your .ghci.conf file to automatically go into :prettychart mode.
@@ -49,27 +67,6 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 :noprettychart
 #+end_src
 
-** live coding
-
-The server can also be used to view and develop chart-svg charts.
-
-#+begin_src haskell :results output
-> (sendChart, quitChartServer) <- startChartServer (Just "prettychart")
-Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
-
--- open localhost:9160
--- developing and sending a chart to the server
-
-> import Chart.Examples
-> sendChart $ lineExample
-
-> quitServer
-> [1..10]
-[1,2,3,4,5,6,7,8,9,10]
-
-#+end_src
-
-
 * Development
 
 #+begin_src haskell :results output
@@ -107,13 +104,13 @@ print "ok"
 
 ** live
 #+begin_src haskell :results output
-(sendChart, quitChartServer) <- startChartServer Nothing
+(display, quit) <- startChartServer Nothing
 #+end_src
 
 #+RESULTS:
 
 #+begin_src haskell :results output
-sendChart $ debugExample quadExample
+display $ debugExample quadExample
 #+end_src
 
 #+RESULTS:

@@ -1,3 +1,9 @@
+0.2
+===
+- removed gpalette (transferred to chart-svg)
+- color-scheme bug fixed
+- chart-svg-0.6 refactors
+
 0.1.2
 ===
 
