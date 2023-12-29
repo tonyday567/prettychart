@@ -27,13 +27,15 @@ chartSocketPage :: Maybe ByteString -> Page
 chartSocketPage title =
   bootstrapPage
     & #jsOnLoad
-      .~ mconcat
-        [ webSocket,
-          runScriptJs,
-          refreshJsbJs
-        ]
+    .~ mconcat
+      [ webSocket,
+        runScriptJs,
+        refreshJsbJs
+      ]
     & #htmlBody
-      .~ element "div" [Attr "class" "container"] (element "row" [Attr "class" "col"] (maybe mempty (elementc "h4" []) title) <> element_ "div" (pure $ Attr "id" "prettychart"))
+    .~ element "div" [Attr "class" "container"] (element "row" [Attr "class" "col"] (maybe mempty (elementc "h4" []) title) <> element_ "div" (pure $ Attr "id" "prettychart"))
+    & #cssBody
+    .~ cssColorScheme
 
 -- | Print a chart supplying a 'ChartOptions' consumer, and a showable thing that may be chartable. The first argument flags whether to also print the item to stdout.
 printChart :: (Show a) => Bool -> (ChartOptions -> IO Bool) -> a -> IO ()

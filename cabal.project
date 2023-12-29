@@ -1,2 +1,8 @@
 packages:
   prettychart.cabal
+
+allow-newer:
+  string-interpolate:template-haskell,
+  string-interpolate:text,
+  scotty:text,
+  websockets:text,

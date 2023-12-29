@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: prettychart
-version: 0.1.2.0
+version: 0.2.0.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2023
@@ -13,7 +13,7 @@ synopsis: Pretty print charts from ghci.
 description:
     Serve and print charts from ghci, with automatic formatting.
 build-type: Simple
-tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
+tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2 || ==9.8.1
 extra-doc-files:
     ChangeLog.md
     other/*.svg
@@ -98,14 +98,14 @@ library
         , base          >=4.7 && <5
         , box           >=0.9 && <0.10
         , bytestring    >=0.11.3 && <0.13
-        , chart-svg     >=0.5 && <0.6
-        , containers    >=0.6 && <0.7
+        , chart-svg     >=0.6 && <0.7
+        , containers    >=0.6 && <0.8
         , markup-parse  >=0.1 && <0.2
         , numhask-space >=0.10 && <0.12
         , optics-core   >=0.4 && <0.5
-        , text          >=1.2 && <2.1
+        , text          >=1.2 && <2.2
         , time          >=1.9 && <1.13
-        , web-rep       >=0.10.1 && <0.12
+        , web-rep       >=0.12.1 && <0.13
     exposed-modules:
         Prettychart
         Prettychart.Any

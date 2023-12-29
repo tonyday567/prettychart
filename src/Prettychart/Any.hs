@@ -67,18 +67,19 @@ tryChart t c = c <$> readEither t
 -- | Default chart for a single list.
 anyList1 :: [Double] -> ChartOptions
 anyList1 xs
-  | length xs > 1000 = histChart (unsafeSpace1 xs) 20 xs
+  | length xs > 1000 = histChart (fromMaybe one $ space1 xs) 20 xs
   | length xs > 10 = anyLineChart [xs]
   | otherwise = barChart defaultBarOptions (BarData [xs] [] [])
 
 -- | Default chart for a double list.
 anyList2 :: [[Double]] -> ChartOptions
-anyList2 xss
-  | (length xss < 4) && (length (head xss) < 10) = anyBar2 xss
+anyList2 [] = mempty
+anyList2 l@(xs : xss)
+  | (length xss < 4) && (length xs < 10) = anyBar2 l
   -- square
-  | all (length xss ==) (length <$> xss) =
-      anySurfaceChart xss
-  | otherwise = anyLineChart xss
+  | all ((length l ==) . length) l =
+      anySurfaceChart l
+  | otherwise = anyLineChart l
 
 -- | Bar chart for a labelled list.
 anySingleNamedBarChart :: [(Text, Double)] -> ChartOptions
@@ -109,29 +110,33 @@ anyBar2 xss =
 anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
   mempty
-    & #hudOptions .~ defaultHudOptions
-    & #charts .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette1 c) xs) [0 ..] xss)
+    & #hudOptions
+    .~ defaultHudOptions
+    & #chartTree
+    .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette c) xs) [0 ..] xss)
 
 -- | Default scatter chart for paired data
 anyTuple2 :: [[(Double, Double)]] -> ChartOptions
 anyTuple2 xss =
   mempty
-    & #hudOptions .~ defaultHudOptions
-    & #charts .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
+    & #hudOptions
+    .~ defaultHudOptions
+    & #chartTree
+    .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
 
 -- | Default pixel chart for double list.
 anySurfaceChart :: [[Double]] -> ChartOptions
-anySurfaceChart xss = mempty & #charts .~ ct
+anySurfaceChart xss = mempty & #chartTree .~ ct
   where
-    ct = runHud (aspect 1) h0 (unnamed c)
-    (h0, _) = toHuds (anySurfaceHud nrows ncols) gr
+    ct = runHudWith one h0 (unnamed c)
+    (_, h0) = toHuds (anySurfaceHud nrows ncols) gr
     gr = Rect 0 (fromIntegral nrows :: Double) 0 (fromIntegral ncols)
     (c, _) =
       surfacef
         (\(Point x y) -> (xss' !! floor x) !! floor y)
         (SurfaceOptions defaultSurfaceStyle (Point nrows ncols) gr)
     -- (defaultSurfaceLegendOptions dark "")
-    nrows = rows xss
+    nrows = Prettychart.Any.rows xss
     ncols = length xss
     xss' = appendZeros xss
 
@@ -143,7 +148,7 @@ appendZeros :: [[Double]] -> [[Double]]
 appendZeros xs =
   ( \x ->
       take
-        (rows xs)
+        (Prettychart.Any.rows xs)
         (x <> repeat 0)
   )
     <$> xs
@@ -152,17 +157,21 @@ anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
   defaultHudOptions
     & #axes
-      .~ [ ( 5,
-             defaultAxisOptions
-               & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
-               & #place .~ PlaceLeft
+    .~ [ Priority
+           5
+           ( defaultYAxisOptions
+               & #ticks
+               % #tick
+               .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
            ),
-           ( 5,
-             defaultAxisOptions
-               & #ticks % #style .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
-               & #place .~ PlaceBottom
+         Priority
+           5
+           ( defaultXAxisOptions
+               & #ticks
+               % #tick
+               .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
            )
-         ]
+       ]
   where
     labelsx = pack . show <$> [0 .. (nx - 1)]
     labelsy = pack . show <$> [0 .. (ny - 1)]
