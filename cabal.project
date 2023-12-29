@@ -1,21 +1,8 @@
 packages:
   prettychart.cabal
-  ../chart-svg/chart-svg.cabal
 
 allow-newer:
-  string-interpolate:bytestring,
   string-interpolate:template-haskell,
   string-interpolate:text,
-  formatn:text,
-  web-rep:text,
-  web-rep:scotty,
   scotty:text,
-  websockets:attoparsec,
   websockets:text,
-  websockets:bytestring,
-  box-socket:text,
-  box-socket:bytestring,
-  box-socket:optparse-generic,
-  optparse-generic:text,
-  optparse-generic:bytestring,
-  box:text,

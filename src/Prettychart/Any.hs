@@ -67,7 +67,7 @@ tryChart t c = c <$> readEither t
 -- | Default chart for a single list.
 anyList1 :: [Double] -> ChartOptions
 anyList1 xs
-  | length xs > 1000 = histChart (unsafeSpace1 xs) 20 xs
+  | length xs > 1000 = histChart (fromMaybe one $ space1 xs) 20 xs
   | length xs > 10 = anyLineChart [xs]
   | otherwise = barChart defaultBarOptions (BarData [xs] [] [])
 
@@ -110,15 +110,19 @@ anyBar2 xss =
 anyLineChart :: [[Double]] -> ChartOptions
 anyLineChart xss =
   mempty
-    & #hudOptions .~ defaultHudOptions
-    & #chartTree .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette c) xs) [0 ..] xss)
+    & #hudOptions
+    .~ defaultHudOptions
+    & #chartTree
+    .~ unnamed (zipWith (\c xs -> simpleLineChart 0.02 (palette c) xs) [0 ..] xss)
 
 -- | Default scatter chart for paired data
 anyTuple2 :: [[(Double, Double)]] -> ChartOptions
 anyTuple2 xss =
   mempty
-    & #hudOptions .~ defaultHudOptions
-    & #chartTree .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
+    & #hudOptions
+    .~ defaultHudOptions
+    & #chartTree
+    .~ unnamed (scatterChart (fmap (fmap (uncurry Point)) xss))
 
 -- | Default pixel chart for double list.
 anySurfaceChart :: [[Double]] -> ChartOptions
@@ -153,17 +157,21 @@ anySurfaceHud :: Int -> Int -> HudOptions
 anySurfaceHud nx ny =
   defaultHudOptions
     & #axes
-      .~ [ Priority
-             5
-             ( defaultYAxisOptions
-                 & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
-             ),
-           Priority
-             5
-             ( defaultXAxisOptions
-                 & #ticks % #tick .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
-             )
-         ]
+    .~ [ Priority
+           5
+           ( defaultYAxisOptions
+               & #ticks
+               % #tick
+               .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsy)
+           ),
+         Priority
+           5
+           ( defaultXAxisOptions
+               & #ticks
+               % #tick
+               .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labelsx)
+           )
+       ]
   where
     labelsx = pack . show <$> [0 .. (nx - 1)]
     labelsy = pack . show <$> [0 .. (ny - 1)]
