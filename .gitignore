@@ -5,3 +5,4 @@ stack.yaml.lock
 **/.DS_Store
 /cabal.project.local
 /.hkgr/
+/.hie/
