@@ -22,6 +22,7 @@ where
 
 import Chart hiding (abs)
 import Data.Bifunctor
+import Data.Foldable
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
