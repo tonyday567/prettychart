@@ -69,7 +69,7 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 
 * Development
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 :r
 :set prompt "> "
 :set -Wno-type-defaults
@@ -77,12 +77,11 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 :set -XOverloadedStrings
 :set -XTupleSections
 :set -XOverloadedLabels
-import Chart hiding (quantiles)
+import Chart
 import Chart.Examples
 import Optics.Core
 import Prettychart.Charts
 import Prettychart.Any
-import Prettychart.ExampleData
 import Prettychart.Server
 import Data.Time.Calendar
 import qualified Data.Map as Map
@@ -103,13 +102,13 @@ print "ok"
 : ok
 
 ** live
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 (display, quit) <- startChartServer Nothing
 #+end_src
 
 #+RESULTS:
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 display $ debugExample quadExample
 #+end_src
 
@@ -121,32 +120,32 @@ display $ debugExample quadExample
 
 *** 10 or less elements => bar chart
 
-#+begin_src haskell
+#+begin_src haskell-ng
 xs = [0..9]
 #+end_src
 
 #+RESULTS:
 
-#+begin_src haskell :file other/list1a.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/list1a.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/list1a.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
 #+RESULTS:
 [[file:other/list1a.svg]]
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 either Text.putStrLn (writeChartOptions "other/list1a.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
 *** >1000 elements => histogram
 
-#+begin_src haskell
+#+begin_src haskell-ng
 xs = sin <$> [0..2000]
 #+end_src
 
 #+RESULTS:
 
-#+begin_src haskell :file other/list1b.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/list1b.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/list1b.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
@@ -157,11 +156,11 @@ either Text.putStrLn (writeChartOptions "other/list1b.svg") $ anyChart (pack . s
 
 In between goes for a line chartIn between goes for a line chart.
 
-#+begin_src haskell
+#+begin_src haskell-ng
 xs = sin . (/100) <$> [0..500]
 #+end_src
 
-#+begin_src haskell :file other/list1c.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/list1c.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/list1c.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
@@ -172,7 +171,7 @@ either Text.putStrLn (writeChartOptions "other/list1c.svg") $ anyChart (pack . s
 *** < 4 lists && < 10 values per list => bar chart
 
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 xs = [(1+) . sin <$> [0..8], (1+) . cos <$> [0..8]]
 xs
 #+end_src
@@ -180,7 +179,7 @@ xs
 #+RESULTS:
 : [[1.0,1.8414709848078965,1.9092974268256817,1.1411200080598671,0.2431975046920718,4.1075725336861546e-2,0.7205845018010741,1.656986598718789,1.989358246623382],[2.0,1.5403023058681398,0.5838531634528576,1.0007503399554585e-2,0.34635637913638806,1.2836621854632262,1.960170286650366,1.7539022543433047,0.8544999661913865]]
 
-#+begin_src haskell :file other/dlista.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/dlista.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/dlista.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
@@ -189,7 +188,7 @@ either Text.putStrLn (writeChartOptions "other/dlista.svg") $ anyChart (pack . s
 
 *** square => surface chart
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
 xs = iter2 (*) (fmap sin [1..20]) (fmap cos [1..20]) :: [[Double]]
 :t xs
@@ -203,7 +202,7 @@ fmap length xs
 : [20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20]
 
 
-#+begin_src haskell :file other/dlistb.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/dlistb.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/dlistb.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
@@ -212,7 +211,7 @@ either Text.putStrLn (writeChartOptions "other/dlistb.svg") $ anyChart (pack . s
 
 ** tuple list [(Double, Double)] => scatter
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 xs = zip (fmap (sin . (0.06*)) [1..100]) (fmap (cos . (0.06*)) [1..100])
 :t xs
 #+end_src
@@ -223,7 +222,7 @@ xs = zip (fmap (sin . (0.06*)) [1..100]) (fmap (cos . (0.06*)) [1..100])
 :       Enum b1, Enum b2) =>
 :      [(b1, b2)]
 
-#+begin_src haskell :file other/dtuple.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/dtuple.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/dtuple.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
@@ -233,7 +232,7 @@ either Text.putStrLn (writeChartOptions "other/dtuple.svg") $ anyChart (pack . s
 ** double tuple list [(Double, Double)] => scatter
 
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
 
 
@@ -245,7 +244,7 @@ xs = iter2 (\s (x,y) -> (s*x, s*y)) ((0.1*) <$> [1..10]) (zip (fmap (sin . (0.06
 : > >
 : xs :: (Fractional b, Enum b, TrigField b) => [[(b, b)]]
 
-#+begin_src haskell :file other/dtupleb.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/dtupleb.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/dtupleb.svg") $ anyChart (pack . show $ xs)
 #+end_src
 
@@ -254,12 +253,12 @@ either Text.putStrLn (writeChartOptions "other/dtupleb.svg") $ anyChart (pack . 
 
 ** (Text, Double) tuple list
 
-#+begin_src haskell
+#+begin_src haskell-ng
 xs = (\x -> (show x, x)) <$> [0..9]
 #+end_src
 
 #+RESULTS:
-#+begin_src haskell :file other/tdtuple.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/tdtuple.svg :results output graphics file :exports both
 either Text.putStrLn (writeChartOptions "other/tdtuple.svg") $ anyChart (pack . show $ xs)
 #+end_src
 

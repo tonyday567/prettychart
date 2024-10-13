@@ -6,3 +6,5 @@ stack.yaml.lock
 /cabal.project.local
 /.hkgr/
 /.hie/
+/.ghc.environment.aarch64-darwin-9.10.1
+/checklist.org

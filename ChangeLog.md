@@ -1,3 +1,8 @@
+0.2.2
+===
+- chart-svg bump to v0.7
+
+
 0.2
 ===
 - removed gpalette (transferred to chart-svg)

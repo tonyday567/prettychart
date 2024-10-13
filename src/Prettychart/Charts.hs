@@ -22,7 +22,6 @@ where
 
 import Chart hiding (abs)
 import Data.Bifunctor
-import Data.Foldable
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
@@ -69,8 +68,7 @@ timeXAxis nticks ds =
     & #ticks
     % #tick
     .~ TickPlaced
-      ( first (* fromIntegral (length ds)) <$> placedTimeLabelContinuous PosInnerOnly Nothing nticks (unsafeSpace1 ds)
-      )
+      (first (* fromIntegral (length ds)) <$> placedTimeLabelContinuous PosInnerOnly Nothing nticks (unsafeSpace1 ds))
 
 -- | common pattern of chart title, x-axis title and y-axis title
 titles3 :: Double -> (Text, Text, Text) -> [Priority TitleOptions]
