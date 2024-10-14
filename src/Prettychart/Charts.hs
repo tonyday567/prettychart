@@ -7,6 +7,7 @@ module Prettychart.Charts
   ( simpleLineChart,
     xify,
     yify,
+    timeXAxisWith,
     timeXAxis,
     titles3,
     histChart,
@@ -62,14 +63,18 @@ simpleLineChart w c xs =
     (defaultLineStyle & #color .~ c & #size .~ w)
     [xify xs]
 
--- | Create a hud that has time as the x-axis, based on supplied UTCTime list.
-timeXAxis :: Int -> [UTCTime] -> AxisOptions
-timeXAxis nticks ds =
+-- | Create a hud that has time as the x-axis based on supplied UTCTime list.
+timeXAxisWith :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> AxisOptions
+timeXAxisWith pos fmt nticks ds =
   defaultXAxisOptions
     & #ticks
     % #tick
     .~ TickPlaced
-      (first (* fromIntegral (length ds)) <$> placedTimeLabelContinuous PosInnerOnly Nothing nticks (unsafeSpace1 ds))
+      (first (* fromIntegral (length ds)) <$> placedTimeLabelContinuous pos fmt nticks (unsafeSpace1 ds))
+
+-- | Create a hud that has time as the x-axis, using defaults, based on supplied UTCTime list.
+timeXAxis :: Int -> [UTCTime] -> AxisOptions
+timeXAxis nticks ds = timeXAxisWith PosInnerOnly Nothing nticks ds
 
 -- | common pattern of chart title, x-axis title and y-axis title
 titles3 :: Double -> (Text, Text, Text) -> [Priority TitleOptions]
