@@ -1,5 +1,6 @@
 packages:
   prettychart.cabal
+  ../chart-svg/chart-svg.cabal
 
 allow-newer: websockets:containers
 

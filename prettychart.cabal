@@ -44,13 +44,16 @@ library
     import: ghc2021-stanza
     hs-source-dirs: src
     build-depends:
+        , aeson
         , async         >=2.2.4 && <2.3
         , base          >=4.7 && <5
         , box           >=0.9 && <0.10
         , bytestring    >=0.11.3 && <0.13
         , chart-svg     >=0.6 && <0.8
         , containers    >=0.6 && <0.8
+        , harpie
         , markup-parse  >=0.1 && <0.2
+        , mealy
         , numhask-space >=0.10 && <0.12
         , optics-core   >=0.4 && <0.5
         , text          >=1.2 && <2.2
@@ -61,6 +64,7 @@ library
         Prettychart.Any
         Prettychart.Charts
         Prettychart.Server
+        Prettychart.Aeson
 
 test-suite doctests
     import: ghc2021-stanza
