@@ -7,20 +7,32 @@ module Prettychart.Server
     startChartServerWith,
     printChart,
     chartSocketPage,
+    startFileServerWith,
+    watchE,
+    watchSvg,
+    svgEvent,
+    displayFile,
   )
 where
 
+import Data.Maybe
 import Box
 import Chart
+import Data.Bool
+import Control.Category ((>>>))
+import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async
-import Control.Monad (when)
+import Control.Monad (forever, when, void)
 import Data.ByteString (ByteString)
+import Data.ByteString qualified as B
 import Data.ByteString.Char8 (pack)
 import Data.Text.Encoding
 import MarkupParse
 import Optics.Core hiding (element)
 import Prettychart.Any
 import Web.Rep
+import System.FSNotify
+import System.FilePath
 
 -- | 'Page' containing a web socket and javascript needed to run it.
 chartSocketPage :: Maybe ByteString -> Page
@@ -67,3 +79,42 @@ startChartServerWith scfg page = do
   (Box c e, q) <- toBoxM Single
   x <- async $ serveSocketBox scfg page (Box toStdout (decodeUtf8 . replace "prettychart" . encodeChartOptions <$> e))
   pure (commit c, cancel x >> q)
+
+-- | Start a file server protocol with bespoke 'SocketConfig' and 'Page' configurations.
+--
+-- > startFileServerWith (defaultSocketConfig & #port .~ 4567) (defaultSocketPage & #htmlBody %~ divClass_ "row" "bespoke footnote")
+startFileServerWith :: SocketConfig -> Page -> IO (FilePath -> IO Bool, IO ())
+startFileServerWith scfg page = do
+  (Box c e, q) <- toBoxM Single
+  x <- async $ serveSocketBox scfg page (Box toStdout (decodeUtf8 . replace "prettychart" <$> witherE (B.readFile >>> fmap Just) e))
+  pure (commit c, cancel x >> q)
+
+-- | Emit from the fsnotify watch manager.
+watchE :: [Char] -> Codensity IO (Emitter IO Event)
+watchE fp = emitQ New (\c -> withManager $ \mgr -> do
+  putStrLn "watchDir started"
+  _ <- watchDir mgr fp (const True) (void . commit c)
+  _ <- forever $ threadDelay 1000000
+  -- never gets to here:
+  putStrLn "watchDir stopped")
+
+-- | Emit from the fsnotify watch manager.
+-- > glue' toStdout <$|> fmap (Text.pack . show) <$> watchE "."
+watchSvg :: FilePath -> CoEmitter IO FilePath
+watchSvg fp = emitQ New (\c -> withManager $ \mgr -> do
+  putStrLn "watchDir started"
+  _ <- watchDir mgr fp (isJust . svgEvent) (maybe (pure ()) (void . commit c) . svgEvent)
+  _ <- forever $ threadDelay 1000000
+  -- never gets to here:
+  putStrLn "watchDir stopped")
+
+svgEvent :: Event -> Maybe FilePath
+svgEvent (Added fp _ dir) = bool Nothing (Just fp) (takeExtension fp == ".svg" && dir == IsFile)
+svgEvent (Modified fp _ dir) = bool Nothing (Just fp) (takeExtension fp == ".svg" && dir == IsFile)
+svgEvent _ = Nothing
+
+displayFile :: SocketConfig -> Page -> IO (Committer IO FilePath, IO ())
+displayFile scfg page = do
+  (Box c e, q) <- toBoxM Single
+  x <- async $ serveSocketBox scfg page (Box toStdout (decodeUtf8 . replace "prettychart" <$> e))
+  pure (witherC (B.readFile >>> fmap Just) c, cancel x >> q)

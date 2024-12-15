@@ -23,10 +23,12 @@ module Prettychart.Charts
     countChart,
     simpleRectChart,
     simpleLineChart,
+    simpleScatterChart,
     xify,
     yify,
     titles3,
     histChart,
+    hhistChart,
     scatterChart,
     blendMidLineStyles,
     quantileNames,
@@ -208,6 +210,13 @@ simpleLineChart w c xs =
     (defaultLineStyle & #color .~ c & #size .~ w)
     [xify xs]
 
+-- | interpret a [Double] as a scatter chart with x coordinates of [0..]
+simpleScatterChart :: Double -> Colour -> [Double] -> Chart
+simpleScatterChart w c xs =
+  GlyphChart
+    (defaultGlyphStyle & #color .~ c & #size .~ w)
+    (xify xs)
+
 -- | common pattern of chart title, x-axis title and y-axis title
 titles3 :: Double -> (Text, Text, Text) -> [Priority TitleOptions]
 titles3 p (t, x, y) =
@@ -264,6 +273,20 @@ histChart r g xs =
     rects =
       filter (\(Rect _ _ _ y') -> y' /= 0) $
         makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
+
+-- | horizontal histogram chart
+hhistChart ::
+  Range Double ->
+  Int ->
+  [Double] ->
+  ChartOptions
+hhistChart r g xs =
+  mempty
+    & set #chartTree (named "hhistogram" [RectChart defaultRectStyle (flipAxes <$> rects)])
+  where
+    hcuts = gridSensible OuterPos False r g
+    h = fill hcuts xs
+    rects = makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
 
 -- | scatter chart
 scatterChart ::

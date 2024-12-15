@@ -104,21 +104,21 @@ print "ok"
 
 
 ** live
+
 #+begin_src haskell-ng :results output
 (display, quit) <- startChartServer Nothing
 display lineExample
 #+end_src
 
 #+RESULTS:
-: Setting phasers to stun... (port ghci> 9160) (ctrTlr-uce
-: to quitg)h
+: Setting phasers tog hsctiu>n ... (porTtr u9e1
+: 60) (ctrl-c to quit)
+
+** file server
 
 #+begin_src haskell-ng :results output
-display $ debugExample quadExample
+writeChartOptions "other/test.svg" (lineExample)
 #+end_src
-
-#+RESULTS:
-: True
 
 
 * gradient descent
@@ -129,7 +129,7 @@ import Data.ByteString qualified as B
 str <- B.readFile "../goal/workspace/results/gradient-descent.json"
 v = decodeStrict str :: Maybe GD
 (Just gd) = v
-take 10 $ isosamples gd
+take 2 $ isosamples gd
 take 2 $ gradd gd
 take 2 $ mom gd
 take 2 $ adam gd
@@ -137,7 +137,7 @@ xs = isosamples gd
 #+end_src
 
 #+RESULTS:
-: [(-4.0,-4.0,32.0),(-4.0,-3.9191919191919196,31.366595245383127),(-4.0,-3.8383838383838382,30.75931027446179),(-4.0,-3.757575757575758,30.178145087235997),(-4.0,-3.6767676767676765,29.623099683705743),(-4.0,-3.595959595959596,29.094174063871034),(-4.0,-3.5151515151515156,28.591368227731866),(-4.0,-3.4343434343434343,28.114682175288237),(-4.0,-3.353535353535354,27.664115906540154),(-4.0,-3.2727272727272725,27.2396694214876)]
+: [(-4.0,-4.0,32.0),(-4.0,-3.9191919191919196,31.366595245383127)]
 : [[-4.0,2.0],[-3.0,1.2]]
 : [[-4.0,2.0],[-3.0,1.2]]
 : [[-4.0,2.0],[-3.50000000025,1.5000000003125]]
@@ -145,7 +145,6 @@ xs = isosamples gd
 ranges
 
 #+begin_src haskell-ng :results output
-:t (\(x,_,_) -> x) <$> xs
 space1 @(Range Double) ((\(x,_,_) -> x) <$> xs)
 space1 @(Range Double) ((\(_,x,_) -> x) <$> xs)
 space1 @(Range Double) ((\(_,_,x) -> x) <$> xs)
@@ -153,7 +152,6 @@ space1 @(Range Double) ((\(_,_,x) -> x) <$> xs)
 #+end_src
 
 #+RESULTS:
-: (\(x,_,_) -> x) <$> xs :: [Double]
 : Just Range -4.0 4.0
 : Just Range -4.0 4.0
 : Just Range 3.2649729619425934e-3 96.0
@@ -197,6 +195,15 @@ lsc = projectChartTree legbox grcLegend
 l = mempty @ChartOptions & set #chartTree (lsc <> sc') & over (#hudOptions % #frames) (<> [Priority 100 (defaultFrameOptions & set #buffer 0.1)]) & set (#markupOptions % #cssOptions % #shapeRendering) UseCssCrisp
 
 display $ l
+#+end_src
+
+#+RESULTS:
+: True
+
+Gradient Descent chart
+
+#+begin_src haskell-ng :results output
+display $ chartGD (defaultConfigChartGD) gd
 #+end_src
 
 #+RESULTS:

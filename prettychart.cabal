@@ -51,6 +51,8 @@ library
         , bytestring    >=0.11.3 && <0.13
         , chart-svg     >=0.6 && <0.8
         , containers    >=0.6 && <0.8
+        , filepath
+        , fsnotify
         , harpie
         , markup-parse  >=0.1 && <0.2
         , mealy
@@ -75,3 +77,30 @@ test-suite doctests
         , doctest-parallel >=0.3 && <0.4
     ghc-options: -threaded
     type: exitcode-stdio-1.0
+
+common ghc-options-exe-stanza
+    ghc-options:
+        -fforce-recomp
+        -funbox-strict-fields
+        -rtsopts
+        -threaded
+        -with-rtsopts=-N
+
+executable prettychart-watch
+    import: ghc-options-exe-stanza
+    import: ghc-options-stanza
+    import: ghc2021-stanza
+    main-is: prettychart-watch.hs
+    hs-source-dirs: app
+    build-depends:
+        , base                 >=4.7 && <5
+        , async
+        , optics-core
+        , optparse-applicative >=0.17 && <0.19
+        , prettychart
+        , chart-svg
+        , fsnotify
+        , text                 >=1.2 && <2.2
+        , web-rep
+        , box
+    ghc-options: -O2
