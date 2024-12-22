@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: prettychart
-version: 0.2.2.0
+version: 0.3.0.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2023
@@ -11,12 +11,12 @@ homepage: https://github.com/tonyday567/prettychart#readme
 bug-reports: https://github.com/tonyday567/prettychart/issues
 synopsis: Pretty print charts from ghci.
 description:
-    Serve and print charts from ghci, with automatic formatting.
+    Serve and print charts from ghci or from an svg file, with automatic formatting.
 build-type: Simple
 tested-with:
     , GHC == 9.10.1
-    , GHC == 9.8.2
     , GHC == 9.6.5
+    , GHC == 9.8.2
 extra-doc-files:
     ChangeLog.md
     other/*.svg
@@ -25,6 +25,14 @@ extra-doc-files:
 source-repository head
     type: git
     location: https://github.com/tonyday567/prettychart
+
+common ghc-options-exe-stanza
+    ghc-options:
+        -fforce-recomp
+        -funbox-strict-fields
+        -rtsopts
+        -threaded
+        -with-rtsopts=-N
 
 common ghc-options-stanza
     ghc-options:
@@ -45,22 +53,40 @@ library
     hs-source-dirs: src
     build-depends:
         , async         >=2.2.4 && <2.3
-        , base          >=4.7 && <5
+        , base          >=4.14 && <5
         , box           >=0.9 && <0.10
         , bytestring    >=0.11.3 && <0.13
-        , chart-svg     >=0.6 && <0.8
+        , chart-svg     >=0.8 && <0.9
         , containers    >=0.6 && <0.8
+        , filepath      >=1.4 && <1.6
+        , fsnotify      >=0.4.1 && <0.5
         , markup-parse  >=0.1 && <0.2
-        , numhask-space >=0.10 && <0.12
+        , numhask-space >=0.10 && <0.13
         , optics-core   >=0.4 && <0.5
         , text          >=1.2 && <2.2
         , time          >=1.9 && <1.15
-        , web-rep       >=0.12.1 && <0.13
+        , web-rep       >=0.12.1 && <0.14
     exposed-modules:
         Prettychart
         Prettychart.Any
         Prettychart.Charts
         Prettychart.Server
+
+executable prettychart-watch
+    import: ghc-options-exe-stanza
+    import: ghc-options-stanza
+    import: ghc2021-stanza
+    main-is: prettychart-watch.hs
+    hs-source-dirs: app
+    build-depends:
+        , async                >=2.2.4 && <2.3
+        , base                 >=4.14 && <5
+        , box                  >=0.9.3 && <0.10
+        , optics-core          >=0.4.1 && <0.5
+        , optparse-applicative >=0.17 && <0.19
+        , prettychart
+        , web-rep              >=0.12.1 && <0.14
+    ghc-options: -O2
 
 test-suite doctests
     import: ghc2021-stanza

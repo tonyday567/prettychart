@@ -1,30 +1,37 @@
 * prettychart
 
-[[https://hackage.haskell.org/package/prettychart][https://img.shields.io/hackage/v/prettychart.svg]] [[https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci][file:https://github.com/tonyday567/prettychart/workflows/haskell-ci/badge.svg]]
+[[https://hackage.haskell.org/package/prettychart][https://img.shields.io/hackage/v/prettychart.svg]] [[https://github.com/tonyday567/prettychart/actions][file:https://github.com/tonyday567/prettychart/workflows/haskell-ci.yml/badge.svg]]
 
 This library contains:
 
-- A chart server, for use in conjunction with ghci, or other live coding situations. (See Chartpretty.Server)
+- A chart server, for use in conjunction with ghci, or other live coding situations. (See Chartpretty.Server & prettychart-watch)
 - anyChart, which attempts to convert text (of numbers) to a chart. (See Chartpretty.Any)
 - Some useful chart patterns that didn't make the cut in chart-svg (See Chartpretty.Charts)
 
 * Usage
-** live coding
+** live
 
 The server can be used to view and develop chart-svg charts.
 
-#+begin_src haskell :results output
-> (display, quit) <- startChartServer (Just "prettychart")
-Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
+#+begin_src haskell-ng :results output
+(display, quit) <- startChartServer Nothing
+display lineExample
+#+end_src
 
--- open localhost:9160
--- developing and sending a chart to the server
+#+RESULTS:
+: Setting phasers to stun... (port 9160) g(hcctir>l -c to Tqruuiet
+: )
 
-> import Chart.Examples
-> display lineExample
+** file serving
 
-> quit
+prettychart-watch can watch a directory and serve new or modified charts.
 
+#+begin_src sh :results output
+prettychart-watch --watch --filepath other --port 3566
+#+end_src
+
+#+begin_src haskell-ng :results output
+writeChartOptions "other/test.svg" (lineExample)
 #+end_src
 
 ** ghci integration
@@ -71,7 +78,6 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 
 #+begin_src haskell-ng :results output
 :r
-:set prompt "> "
 :set -Wno-type-defaults
 :set -Wno-name-shadowing
 :set -XOverloadedStrings
@@ -92,28 +98,14 @@ import Data.Time
 import qualified Data.List as List
 import Control.Category ((>>>))
 print "ok"
-#+end_src
-
-#+RESULTS:
-: [3 of 5] Compiling Prettychart.ExampleData ( src/Prettychart/ExampleData.hs, interpreted ) [Flags changed]
-: [5 of 5] Compiling Prettychart      ( src/Prettychart.hs, interpreted ) [Flags changed]
-: Ok, five modules loaded.
-: >
-: ok
-
-** live
-#+begin_src haskell-ng :results output
 (display, quit) <- startChartServer Nothing
+display lineExample
 #+end_src
 
 #+RESULTS:
-
-#+begin_src haskell-ng :results output
-display $ debugExample quadExample
-#+end_src
-
-#+RESULTS:
-: True
+: [4 of 4] Compiling Prettychart      ( src/Prettychart.hs, interpreted ) [Flags changed]
+: Ok, four modules reloaded.
+: "ok"
 
 * Prettychart.Any Examples
 ** single list

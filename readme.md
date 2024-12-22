@@ -1,62 +1,37 @@
 
-# Table of Contents
-
-1.  [prettychart](#org52eda08)
-2.  [Usage](#orgf05409a)
-    1.  [live coding](#org062de09)
-    2.  [ghci integration](#orgfcd7bd6)
-3.  [Development](#orgf489981)
-    1.  [live](#org2deed6a)
-4.  [Prettychart.Any Examples](#orgca9d9d6)
-    1.  [single list](#org9b83b20)
-        1.  [10 or less elements => bar chart](#orgc860033)
-        2.  [>1000 elements => histogram](#org7abe64c)
-        3.  [< 1000 && > 10 => line chart](#orga634aff)
-    2.  [double list](#org493d2b1)
-        1.  [< 4 lists && < 10 values per list => bar chart](#org6e7fcb7)
-        2.  [square => surface chart](#org5e9ba1b)
-    3.  [tuple list [(Double, Double)] => scatter](#orgfc9b845)
-    4.  [double tuple list [(Double, Double)] => scatter](#orgcd245d1)
-    5.  [(Text, Double) tuple list](#org5cb6f57)
-
-
-<a id="org52eda08"></a>
-
 # prettychart
 
-[![img](https://img.shields.io/hackage/v/prettychart.svg)](https://hackage.haskell.org/package/prettychart) [![img](https://github.com/tonyday567/prettychart/workflows/haskell-ci/badge.svg)](https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci)
+[![img](https://img.shields.io/hackage/v/prettychart.svg)](https://hackage.haskell.org/package/prettychart) [![img](https://github.com/tonyday567/prettychart/workflows/haskell-ci.yml/badge.svg)](https://github.com/tonyday567/prettychart/actions)
 
 This library contains:
 
--   A chart server, for use in conjunction with ghci, or other live coding situations. (See Chartpretty.Server)
+-   A chart server, for use in conjunction with ghci, or other live coding situations. (See Chartpretty.Server & prettychart-watch)
 -   anyChart, which attempts to convert text (of numbers) to a chart. (See Chartpretty.Any)
 -   Some useful chart patterns that didn&rsquo;t make the cut in chart-svg (See Chartpretty.Charts)
 
 
-<a id="orgf05409a"></a>
-
 # Usage
 
 
-<a id="org062de09"></a>
-
-## live coding
+## live
 
 The server can be used to view and develop chart-svg charts.
 
-    > (display, quit) <- startChartServer (Just "prettychart")
-    Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
-    
-    -- open localhost:9160
-    -- developing and sending a chart to the server
-    
-    > import Chart.Examples
-    > display lineExample
-    
-    > quit
+    (display, quit) <- startChartServer Nothing
+    display lineExample
+
+    Setting phasers to stun... (port 9160) g(hcctir>l -c to Tqruuiet
+    )
 
 
-<a id="orgfcd7bd6"></a>
+## file serving
+
+prettychart-watch can watch a directory and serve new or modified charts.
+
+    prettychart-watch --watch --filepath other --port 3566
+
+    writeChartOptions "other/test.svg" (lineExample)
+
 
 ## ghci integration
 
@@ -90,23 +65,19 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
     :noprettychart
 
 
-<a id="orgf489981"></a>
-
 # Development
 
     :r
-    :set prompt "> "
     :set -Wno-type-defaults
     :set -Wno-name-shadowing
     :set -XOverloadedStrings
     :set -XTupleSections
     :set -XOverloadedLabels
-    import Chart hiding (quantiles)
+    import Chart
     import Chart.Examples
     import Optics.Core
     import Prettychart.Charts
     import Prettychart.Any
-    import Prettychart.ExampleData
     import Prettychart.Server
     import Data.Time.Calendar
     import qualified Data.Map as Map
@@ -117,36 +88,19 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
     import qualified Data.List as List
     import Control.Category ((>>>))
     print "ok"
-
-    [3 of 5] Compiling Prettychart.ExampleData ( src/Prettychart/ExampleData.hs, interpreted ) [Flags changed]
-    [5 of 5] Compiling Prettychart      ( src/Prettychart.hs, interpreted ) [Flags changed]
-    Ok, five modules loaded.
-    >
-    ok
-
-
-<a id="org2deed6a"></a>
-
-## live
-
     (display, quit) <- startChartServer Nothing
+    display lineExample
 
-    display $ debugExample quadExample
+    [4 of 4] Compiling Prettychart      ( src/Prettychart.hs, interpreted ) [Flags changed]
+    Ok, four modules reloaded.
+    "ok"
 
-    True
-
-
-<a id="orgca9d9d6"></a>
 
 # Prettychart.Any Examples
 
 
-<a id="org9b83b20"></a>
-
 ## single list
 
-
-<a id="orgc860033"></a>
 
 ### 10 or less elements => bar chart
 
@@ -159,8 +113,6 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
     either Text.putStrLn (writeChartOptions "other/list1a.svg") $ anyChart (pack . show $ xs)
 
 
-<a id="org7abe64c"></a>
-
 ### >1000 elements => histogram
 
     xs = sin <$> [0..2000]
@@ -169,8 +121,6 @@ Add this to your .ghci.conf file to automatically go into :prettychart mode.
 
 ![img](other/list1b.svg)
 
-
-<a id="orga634aff"></a>
 
 ### < 1000 && > 10 => line chart
 
@@ -183,12 +133,8 @@ In between goes for a line chartIn between goes for a line chart.
 ![img](other/list1c.svg)
 
 
-<a id="org493d2b1"></a>
-
 ## double list
 
-
-<a id="org6e7fcb7"></a>
 
 ### < 4 lists && < 10 values per list => bar chart
 
@@ -201,8 +147,6 @@ In between goes for a line chartIn between goes for a line chart.
 
 ![img](other/dlista.svg)
 
-
-<a id="org5e9ba1b"></a>
 
 ### square => surface chart
 
@@ -221,8 +165,6 @@ In between goes for a line chartIn between goes for a line chart.
 ![img](other/dlistb.svg)
 
 
-<a id="orgfc9b845"></a>
-
 ## tuple list [(Double, Double)] => scatter
 
     xs = zip (fmap (sin . (0.06*)) [1..100]) (fmap (cos . (0.06*)) [1..100])
@@ -237,8 +179,6 @@ In between goes for a line chartIn between goes for a line chart.
 
 ![img](other/dtuple.svg)
 
-
-<a id="orgcd245d1"></a>
 
 ## double tuple list [(Double, Double)] => scatter
 
@@ -255,8 +195,6 @@ In between goes for a line chartIn between goes for a line chart.
 
 ![img](other/dtupleb.svg)
 
-
-<a id="org5cb6f57"></a>
 
 ## (Text, Double) tuple list
 

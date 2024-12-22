@@ -1,8 +1,6 @@
 packages:
   prettychart.cabal
 
-allow-newer: websockets:containers
-
 write-ghc-environment-files: always
 
 tests: True
