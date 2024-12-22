@@ -43,6 +43,7 @@ import Chart hiding (abs)
 import Control.Category ((>>>))
 import Data.Bifunctor
 import Data.Bool
+import Data.Foldable
 import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.Maybe
@@ -61,6 +62,7 @@ import Optics.Core
 -- >>> import qualified Data.Text as Text
 -- >>> import qualified Data.Text.IO as Text
 
+-- | UTC (time) axis style
 data UtcAxisStyle
   = UtcAxisStyle
   { cont :: Bool,
@@ -70,6 +72,7 @@ data UtcAxisStyle
   }
   deriving (Generic)
 
+-- | default UTC (time) axis style
 defaultUtcAxisStyle :: UtcAxisStyle
 defaultUtcAxisStyle = UtcAxisStyle True PosInnerOnly (Just "%b %y") 8
 
@@ -91,6 +94,7 @@ utcAxis s ds =
     utcFormat = view #utcFormat s
     nTicks = view #nTicks s
 
+-- | Decile (quantile) axis style
 data DecileAxisStyle
   = DecileAxisStyle
   { size :: Double,
@@ -98,12 +102,15 @@ data DecileAxisStyle
   }
   deriving (Generic)
 
+-- | Default decile (quantile) axis style
 defaultDecileAxisStyle :: DecileAxisStyle
 defaultDecileAxisStyle = DecileAxisStyle 0.04 []
 
+-- | Convert a list of quantiles to 'DecileAxisStyle'
 qsAxisStyle :: [Double] -> DecileAxisStyle
 qsAxisStyle qs = defaultDecileAxisStyle & set #labels (quantileNames qs)
 
+-- | Create an axis from a style.
 decileAxis :: DecileAxisStyle -> AxisOptions
 decileAxis s =
   defaultYAxisOptions
@@ -111,6 +118,7 @@ decileAxis s =
     & set (#ticks % #lineTick) Nothing
     & set (#ticks % #textTick %? #style % #size) (view #size s)
 
+-- | Chart style for a digit chart
 data DigitChartStyle
   = DigitChartStyle
   { utcAxisStyle :: Maybe UtcAxisStyle,
@@ -120,6 +128,7 @@ data DigitChartStyle
   }
   deriving (Generic)
 
+-- | Default chart style for a digit chart
 defaultDigitChartStyle :: DigitChartStyle
 defaultDigitChartStyle = DigitChartStyle (Just defaultUtcAxisStyle) Nothing (defaultGlyphStyle & set #size 0.01) True
 
@@ -139,6 +148,7 @@ digitChart s utcs xs =
         & set #axes (fmap (Priority 5) (xaxis <> yaxis))
     c = GlyphChart (view #glyphStyle s) (xify (fromIntegral <$> xs))
 
+-- | Style of a UTC line chart.
 data UtcLineChartStyle = UtcLineChartStyle
   { lineStyle :: Style,
     utcAxisStyle :: Maybe UtcAxisStyle,
@@ -147,9 +157,11 @@ data UtcLineChartStyle = UtcLineChartStyle
   }
   deriving (Generic)
 
+-- | Default style of a UTC line chart.
 defaultUtcLineChartStyle :: UtcLineChartStyle
 defaultUtcLineChartStyle = UtcLineChartStyle (defaultLineStyle & set #size 0.005) (Just defaultUtcAxisStyle) (Just $ defaultYAxisOptions & set #place PlaceLeft & set (#ticks % #tick) (TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)) (Just (defaultLegendOptions & set #place PlaceBottom & set #frame (Just $ border 0.01 light) & set (#textStyle % #size) 0.2 & set #anchorTo HudStyleSection))
 
+-- | Line chart for a UTC time series.
 utcLineChart :: UtcLineChartStyle -> [Text] -> [(UTCTime, [Double])] -> ChartOptions
 utcLineChart s labels xs = mempty & #chartTree .~ named "day" cs & #hudOptions .~ h
   where
@@ -229,6 +241,7 @@ titles3 p (t, x, y) =
     Priority p (defaultTitleOptions y & #place .~ PlaceLeft & #style % #size .~ 0.05)
   ]
 
+-- | countChart style
 data CountChartStyle = CountChartStyle
   { title :: Maybe Text,
     titleColour :: Colour,
@@ -236,13 +249,16 @@ data CountChartStyle = CountChartStyle
   }
   deriving (Generic)
 
+-- | Default CountChart style
 defaultCountChartStyle :: CountChartStyle
 defaultCountChartStyle = CountChartStyle (Just "count") (paletteO 10 0.7) (Just (defaultLegendOptions & set #place PlaceRight & set #frame (Just $ border 0.01 light) & set (#textStyle % #size) 0.2 & set #anchorTo HudStyleSection))
 
+-- | Count chart
 countChart :: CountChartStyle -> [Text] -> [Int] -> ChartOptions
 countChart s ls cs =
   barChart defaultBarOptions (BarData (List.transpose [fromIntegral <$> cs]) [] ls) & set (#hudOptions % #axes) [] & set (#chartTree % charts' % each % #chartStyle % #borderSize) 0 & set (#hudOptions % #legends % ix 0 % #item % #place) PlaceRight & set (#hudOptions % #titles) (maybeToList $ fmap (\t -> Priority 5 (defaultTitleOptions t & set (#style % #size) 0.06 & set #anchoring (-0.5) & set (#style % #color) (view #titleColour s))) (view #title s))
 
+-- | Simple Rect chart
 simpleRectChart ::
   [Double] ->
   Style ->
@@ -396,6 +412,7 @@ digitSurfaceChart pixelStyle _ ts names ps =
         f
         (SurfaceOptions pixelStyle pts gr)
 
+-- | Hud for a qvq chart.
 qvqHud :: (Text, Text, Text) -> [Text] -> HudOptions
 qvqHud ts labels =
   defaultHudOptions

@@ -116,11 +116,13 @@ watchSvg fp =
         putStrLn "watchDir stopped"
     )
 
+-- | Filter for svg file additions and modifications.
 svgEvent :: Event -> Maybe FilePath
 svgEvent (Added fp _ dir) = bool Nothing (Just fp) (takeExtension fp == ".svg" && dir == IsFile)
 svgEvent (Modified fp _ dir) = bool Nothing (Just fp) (takeExtension fp == ".svg" && dir == IsFile)
 svgEvent _ = Nothing
 
+-- | Create a file committer to serve an SVG file.
 displayFile :: SocketConfig -> Page -> IO (Committer IO FilePath, IO ())
 displayFile scfg page = do
   (Box c e, q) <- toBoxM Single

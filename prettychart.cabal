@@ -58,14 +58,14 @@ library
         , bytestring    >=0.11.3 && <0.13
         , chart-svg     >=0.8 && <0.9
         , containers    >=0.6 && <0.8
-        , filepath      >=1.5.2 && <1.6
+        , filepath      >=1.4 && <1.6
         , fsnotify      >=0.4.1 && <0.5
         , markup-parse  >=0.1 && <0.2
         , numhask-space >=0.10 && <0.13
         , optics-core   >=0.4 && <0.5
         , text          >=1.2 && <2.2
         , time          >=1.9 && <1.15
-        , web-rep       >=0.12.1 && <0.13
+        , web-rep       >=0.12.1 && <0.14
     exposed-modules:
         Prettychart
         Prettychart.Any
@@ -85,7 +85,7 @@ executable prettychart-watch
         , optics-core          >=0.4.1 && <0.5
         , optparse-applicative >=0.17 && <0.19
         , prettychart
-        , web-rep              >=0.12.1 && <0.13
+        , web-rep              >=0.12.1 && <0.14
     ghc-options: -O2
 
 test-suite doctests
