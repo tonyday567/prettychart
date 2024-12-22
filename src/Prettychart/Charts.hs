@@ -29,6 +29,7 @@ module Prettychart.Charts
     titles3,
     histChart,
     hhistChart,
+    hhistCharts,
     scatterChart,
     blendMidLineStyles,
     quantileNames,
@@ -40,7 +41,6 @@ where
 
 import Chart hiding (abs)
 import Data.Bifunctor
-import Data.Foldable
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
@@ -287,6 +287,20 @@ hhistChart r g xs =
     hcuts = gridSensible OuterPos False r g
     h = fill hcuts xs
     rects = makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) h
+
+-- | horizontal histogram chart
+hhistCharts ::
+  Range Double ->
+  Int ->
+  [(Style, [Double])] ->
+  ChartOptions
+hhistCharts r g xs =
+  mempty
+    & set #chartTree (named "hhistogram" (zipWith (\r s -> RectChart s  (flipAxes <$> r)) rects (fst <$> xs)))
+  where
+    hcuts = gridSensible OuterPos False r g
+    hs = fill hcuts . snd <$> xs
+    rects = makeRects (IncludeOvers (NumHask.Space.width r / fromIntegral g)) <$> hs
 
 -- | scatter chart
 scatterChart ::

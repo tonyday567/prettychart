@@ -90,9 +90,6 @@ import qualified Data.Text.IO as Text
 import Data.Time
 import qualified Data.List as List
 import Control.Category ((>>>))
-import Data.Aeson
-import Data.Aeson.Types
-import Prettychart.Aeson
 import Harpie.Array qualified as A
 import Data.Mealy
 print "ok"

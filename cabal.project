@@ -1,9 +1,5 @@
 packages:
   prettychart.cabal
-  ../chart-svg/chart-svg.cabal
-  ../numhask-space/numhask-space.cabal
-
-allow-newer: websockets:containers
 
 write-ghc-environment-files: always
 
