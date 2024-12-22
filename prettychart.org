@@ -1,30 +1,37 @@
 * prettychart
 
-[[https://hackage.haskell.org/package/prettychart][https://img.shields.io/hackage/v/prettychart.svg]] [[https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci][file:https://github.com/tonyday567/prettychart/workflows/haskell-ci/badge.svg]]
+[[https://hackage.haskell.org/package/prettychart][https://img.shields.io/hackage/v/prettychart.svg]] [[https://github.com/tonyday567/prettychart/actions][file:https://github.com/tonyday567/prettychart/workflows/haskell-ci.yml/badge.svg]]
 
 This library contains:
 
-- A chart server, for use in conjunction with ghci, or other live coding situations. (See Chartpretty.Server)
+- A chart server, for use in conjunction with ghci, or other live coding situations. (See Chartpretty.Server & prettychart-watch)
 - anyChart, which attempts to convert text (of numbers) to a chart. (See Chartpretty.Any)
 - Some useful chart patterns that didn't make the cut in chart-svg (See Chartpretty.Charts)
 
 * Usage
-** live coding
+** live
 
 The server can be used to view and develop chart-svg charts.
 
-#+begin_src haskell :results output
-> (display, quit) <- startChartServer (Just "prettychart")
-Setting phaser>s  to stun... (port 9160) (ctrl-c to quit)
+#+begin_src haskell-ng :results output
+(display, quit) <- startChartServer Nothing
+display lineExample
+#+end_src
 
--- open localhost:9160
--- developing and sending a chart to the server
+#+RESULTS:
+: Setting phasers to stun... (port 9160) g(hcctir>l -c to Tqruuiet
+: )
 
-> import Chart.Examples
-> display lineExample
+** file serving
 
-> quit
+prettychart-watch can watch a directory and serve new or modified charts.
 
+#+begin_src sh :results output
+prettychart-watch --watch --filepath other --port 3566
+#+end_src
+
+#+begin_src haskell-ng :results output
+writeChartOptions "other/test.svg" (lineExample)
 #+end_src
 
 ** ghci integration
@@ -90,121 +97,15 @@ import qualified Data.Text.IO as Text
 import Data.Time
 import qualified Data.List as List
 import Control.Category ((>>>))
-import Harpie.Array qualified as A
-import Data.Mealy
 print "ok"
-#+end_src
-
-#+RESULTS:
-: Ok, five modules loaded.
-: "ok"
-
-
-** live
-
-#+begin_src haskell-ng :results output
 (display, quit) <- startChartServer Nothing
 display lineExample
 #+end_src
 
 #+RESULTS:
-: Setting phasers tog hsctiu>n ... (porTtr u9e1
-: 60) (ctrl-c to quit)
-
-** file server
-
-#+begin_src haskell-ng :results output
-writeChartOptions "other/test.svg" (lineExample)
-#+end_src
-
-
-* gradient descent
-
-#+begin_src haskell-ng :results output
-:set -Wno-incomplete-uni-patterns
-import Data.ByteString qualified as B
-str <- B.readFile "../goal/workspace/results/gradient-descent.json"
-v = decodeStrict str :: Maybe GD
-(Just gd) = v
-take 2 $ isosamples gd
-take 2 $ gradd gd
-take 2 $ mom gd
-take 2 $ adam gd
-xs = isosamples gd
-#+end_src
-
-#+RESULTS:
-: [(-4.0,-4.0,32.0),(-4.0,-3.9191919191919196,31.366595245383127)]
-: [[-4.0,2.0],[-3.0,1.2]]
-: [[-4.0,2.0],[-3.0,1.2]]
-: [[-4.0,2.0],[-3.50000000025,1.5000000003125]]
-
-ranges
-
-#+begin_src haskell-ng :results output
-space1 @(Range Double) ((\(x,_,_) -> x) <$> xs)
-space1 @(Range Double) ((\(_,x,_) -> x) <$> xs)
-space1 @(Range Double) ((\(_,_,x) -> x) <$> xs)
-
-#+end_src
-
-#+RESULTS:
-: Just Range -4.0 4.0
-: Just Range -4.0 4.0
-: Just Range 3.2649729619425934e-3 96.0
-
-draft gradient descent
-
-#+begin_src haskell-ng :results output
-import NumHask.Space
-vs = (\(_,_,x) -> x) <$> xs
-dr = unsafeSpace1 vs
-evenColors = set opac' 0.7 . trimColour . over lightness' (const 0.45) . palette <$> [3 .. 7]
-gap = 8 / 99.0
-mksd gap (x,y,z) = SurfaceData (Rect x (x+gap) y (y+gap)) (flip mixes evenColors . project dr (Range 0 1) $ z)
-sds = mksd gap <$> xs
-
-slo = defaultSurfaceLegendOptions & set (#sloSurfaceStyle % #surfaceColors) evenColors & set #sloDataRange dr & set #sloRect (Rect 0.35 0.45 0.1 0.4) & set #sloWidth 0.1 & set (#sloAxisOptions % #ticks % #textTick % _Just % #style % #size) 0.03
-
-dotsize = 0.016
-
-ss = zipWith (\c g -> defaultGlyphStyle & set #glyphShape g & set #size dotsize & set #color (palette c) & set #borderColor (set lightness' 0.5 (palette c))) [0..] [CircleGlyph, SquareGlyph, EllipseGlyph 0.6]
-
-sc = named "surface" (surfaces clear sds)
-gdc = named "gd" [GlyphChart (ss!!0) (fmap (\[x,y] -> Point x y) (gradd gd))]
-ac = named "adam" [GlyphChart (ss!!1) (fmap (\[x,y] -> Point x y) (adam gd))]
-mc = named "mom" [GlyphChart (ss!!2) (fmap (\[x,y] -> Point x y) (mom gd))]
-
-getc1 cs = cs & toListOf charts' & mconcat & take 1
-
-hos = defaultHudOptions & set (#axes % each % #item % #ticks % #lineTick) Nothing & set (#axes % each % #item % #ticks % #tick % tickExtend') (Just NoTickExtend) & set #legends [ Priority 12 $ defaultLegendOptions & set #place (PlaceAbsolute (Point 0.65 (-0.15))) & set #frame Nothing & set #legendCharts [("gd", getc1 gdc), ("mom", getc1 mc),("adam", getc1 ac)] & set #legendSize 0.2 & set #scaleChartsBy 0.2 & set (#legendCharts % each % _2 % each % #chartStyle % #borderSize) 0.024]
-
-sc' = addHud ChartAspect hos (sc <> (unnamed [BlankChart clear [Rect (-4) 4 (-4) 4]]) <> gdc <> ac <> mc)
-csc = mempty @ChartOptions & set #hudOptions hos & set #chartTree sc & set (#markupOptions % #chartAspect) ChartAspect & set (#markupOptions % #cssOptions % #shapeRendering) UseCssCrisp
-
-grc = gridReferenceChart slo
-hoLegend = (mempty :: HudOptions) & set #axes [Priority 1 (view #sloAxisOptions slo & set (#ticks % #textTick % _Just % #buffer) 0.001 & set (#ticks % #glyphTick % _Just % #buffer) 0)]
-grcLegend = addHud (FixedAspect (view #sloWidth slo)) hoLegend grc
-ctbox = maybe one id (view styleBox' sc')
-legbox = projectOnR ctbox one (view #sloRect slo)
-lsc = projectChartTree legbox grcLegend
-
-l = mempty @ChartOptions & set #chartTree (lsc <> sc') & over (#hudOptions % #frames) (<> [Priority 100 (defaultFrameOptions & set #buffer 0.1)]) & set (#markupOptions % #cssOptions % #shapeRendering) UseCssCrisp
-
-display $ l
-#+end_src
-
-#+RESULTS:
-: True
-
-Gradient Descent chart
-
-#+begin_src haskell-ng :results output
-display $ chartGD (defaultConfigChartGD) gd
-#+end_src
-
-#+RESULTS:
-: True
+: [4 of 4] Compiling Prettychart      ( src/Prettychart.hs, interpreted ) [Flags changed]
+: Ok, four modules reloaded.
+: "ok"
 
 * Prettychart.Any Examples
 ** single list
