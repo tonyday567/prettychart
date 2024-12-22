@@ -1,9 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Watch a file or directory for svg to serve
 module Main where
 
+import Box
 import Control.Concurrent.Async
 import GHC.Generics
 import Optics.Core
@@ -11,7 +12,6 @@ import Options.Applicative
 import Prettychart
 import Web.Rep.Socket
 import Prelude
-import Box
 
 data Run = RunWatch deriving (Eq, Show)
 
@@ -32,10 +32,10 @@ parseRun =
 
 parseSocketConfig :: SocketConfig -> Parser SocketConfig
 parseSocketConfig def =
-  SocketConfig <$>
-    option auto (value (view #host def) <> long "host" <> help "socket host") <*>
-    option auto (value (view #port def) <> long "port" <> help "socket port") <*>
-    option auto (value (view #path def) <> long "path" <> help "socket path")
+  SocketConfig
+    <$> option auto (value (view #host def) <> long "host" <> help "socket host")
+    <*> option auto (value (view #port def) <> long "port" <> help "socket port")
+    <*> option auto (value (view #path def) <> long "path" <> help "socket path")
 
 appParser :: AppConfig -> Parser AppConfig
 appParser def =

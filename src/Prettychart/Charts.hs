@@ -40,17 +40,17 @@ module Prettychart.Charts
 where
 
 import Chart hiding (abs)
+import Control.Category ((>>>))
 import Data.Bifunctor
+import Data.Bool
+import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Data.Time (UTCTime (..))
+import GHC.Generics
 import NumHask.Space
 import Optics.Core
-import Data.Bool
-import GHC.Generics
-import Control.Category ((>>>))
-import Data.List qualified as List
 
 -- $setup
 --
@@ -61,14 +61,14 @@ import Data.List qualified as List
 -- >>> import qualified Data.Text as Text
 -- >>> import qualified Data.Text.IO as Text
 
-
-data UtcAxisStyle =
-  UtcAxisStyle {
-    cont :: Bool,
+data UtcAxisStyle
+  = UtcAxisStyle
+  { cont :: Bool,
     posd :: PosDiscontinuous,
     utcFormat :: Maybe Text,
     nTicks :: Int
-  } deriving (Generic)
+  }
+  deriving (Generic)
 
 defaultUtcAxisStyle :: UtcAxisStyle
 defaultUtcAxisStyle = UtcAxisStyle True PosInnerOnly (Just "%b %y") 8
@@ -80,21 +80,23 @@ utcAxis s ds =
     & #ticks
     % #tick
     .~ TickPlaced
-      (bool
-       (fmap (first fromIntegral) $ fst $ placedTimeLabelDiscontinuous posd utcFormat nTicks ds)
-       (first (* fromIntegral (length ds - 1)) <$> placedTimeLabelContinuous posd utcFormat nTicks (unsafeSpace1 ds))
-       cont)
+      ( bool
+          (fmap (first fromIntegral) $ fst $ placedTimeLabelDiscontinuous posd utcFormat nTicks ds)
+          (first (* fromIntegral (length ds - 1)) <$> placedTimeLabelContinuous posd utcFormat nTicks (unsafeSpace1 ds))
+          cont
+      )
   where
     cont = view #cont s
     posd = view #posd s
     utcFormat = view #utcFormat s
     nTicks = view #nTicks s
 
-data DecileAxisStyle =
-  DecileAxisStyle {
-    size :: Double,
+data DecileAxisStyle
+  = DecileAxisStyle
+  { size :: Double,
     labels :: [Text]
-  } deriving (Generic)
+  }
+  deriving (Generic)
 
 defaultDecileAxisStyle :: DecileAxisStyle
 defaultDecileAxisStyle = DecileAxisStyle 0.04 []
@@ -109,13 +111,14 @@ decileAxis s =
     & set (#ticks % #lineTick) Nothing
     & set (#ticks % #textTick %? #style % #size) (view #size s)
 
-data DigitChartStyle =
-  DigitChartStyle {
-    utcAxisStyle :: Maybe UtcAxisStyle,
+data DigitChartStyle
+  = DigitChartStyle
+  { utcAxisStyle :: Maybe UtcAxisStyle,
     decileAxisStyle :: Maybe DecileAxisStyle,
     glyphStyle :: Style,
     hasLegend :: Bool
-  } deriving (Generic)
+  }
+  deriving (Generic)
 
 defaultDigitChartStyle :: DigitChartStyle
 defaultDigitChartStyle = DigitChartStyle (Just defaultUtcAxisStyle) Nothing (defaultGlyphStyle & set #size 0.01) True
@@ -129,7 +132,7 @@ digitChart ::
 digitChart s utcs xs =
   mempty & #chartTree .~ unnamed [c] & #hudOptions .~ hudOptions
   where
-    xaxis = view #utcAxisStyle s & fmap ((\c -> utcAxis c utcs)) & maybeToList
+    xaxis = view #utcAxisStyle s & fmap (\c -> utcAxis c utcs) & maybeToList
     yaxis = view #decileAxisStyle s & fmap decileAxis & maybeToList
     hudOptions =
       defaultHudOptions
@@ -141,7 +144,8 @@ data UtcLineChartStyle = UtcLineChartStyle
     utcAxisStyle :: Maybe UtcAxisStyle,
     yAxisStyle :: Maybe AxisOptions,
     legendStyle :: Maybe LegendOptions
-  } deriving (Generic)
+  }
+  deriving (Generic)
 
 defaultUtcLineChartStyle :: UtcLineChartStyle
 defaultUtcLineChartStyle = UtcLineChartStyle (defaultLineStyle & set #size 0.005) (Just defaultUtcAxisStyle) (Just $ defaultYAxisOptions & set #place PlaceLeft & set (#ticks % #tick) (TickRound (FormatN FSPercent (Just 2) 4 True True) 6 TickExtend)) (Just (defaultLegendOptions & set #place PlaceBottom & set #frame (Just $ border 0.01 light) & set (#textStyle % #size) 0.2 & set #anchorTo HudStyleSection))
@@ -150,7 +154,7 @@ utcLineChart :: UtcLineChartStyle -> [Text] -> [(UTCTime, [Double])] -> ChartOpt
 utcLineChart s labels xs = mempty & #chartTree .~ named "day" cs & #hudOptions .~ h
   where
     cs = zipWith (\c xs' -> LineChart (view #lineStyle s & set #color c) [xify xs']) ((\x -> paletteO x 0.7) <$> [1, 2, 6, 7, 5, 3, 4, 0]) (List.transpose $ snd <$> xs)
-    xaxis = view #utcAxisStyle s & fmap ((\c -> utcAxis c (fmap fst xs))) & maybeToList
+    xaxis = view #utcAxisStyle s & fmap (\c -> utcAxis c (fmap fst xs)) & maybeToList
     yaxis = view #yAxisStyle s & maybeToList
     leg = view #legendStyle s & fmap (set #legendCharts (zipWith (\t c -> (t, [c])) labels cs) >>> Priority 12) & maybeToList
     h = defaultHudOptions & set #axes (fmap (Priority 5) (xaxis <> yaxis)) & set #legends leg
@@ -225,18 +229,19 @@ titles3 p (t, x, y) =
     Priority p (defaultTitleOptions y & #place .~ PlaceLeft & #style % #size .~ 0.05)
   ]
 
-data CountChartStyle = CountChartStyle {
-  title :: Maybe Text,
-  titleColour :: Colour,
-  legendStyle :: Maybe LegendOptions
-} deriving (Generic)
+data CountChartStyle = CountChartStyle
+  { title :: Maybe Text,
+    titleColour :: Colour,
+    legendStyle :: Maybe LegendOptions
+  }
+  deriving (Generic)
 
 defaultCountChartStyle :: CountChartStyle
 defaultCountChartStyle = CountChartStyle (Just "count") (paletteO 10 0.7) (Just (defaultLegendOptions & set #place PlaceRight & set #frame (Just $ border 0.01 light) & set (#textStyle % #size) 0.2 & set #anchorTo HudStyleSection))
 
 countChart :: CountChartStyle -> [Text] -> [Int] -> ChartOptions
 countChart s ls cs =
-  barChart defaultBarOptions (BarData (List.transpose [fromIntegral <$> cs]) [] ls) & set (#hudOptions % #axes) [] & set (#chartTree % charts' % each % #chartStyle % #borderSize) 0 & set (#hudOptions % #legends % ix 0 % #item % #place) PlaceRight & set (#hudOptions % #titles) (maybeToList $ fmap (\t -> (Priority 5 (defaultTitleOptions t & set (#style % #size) 0.06 & set #anchoring (-0.5) & set (#style % #color) (view #titleColour s)))) (view #title s))
+  barChart defaultBarOptions (BarData (List.transpose [fromIntegral <$> cs]) [] ls) & set (#hudOptions % #axes) [] & set (#chartTree % charts' % each % #chartStyle % #borderSize) 0 & set (#hudOptions % #legends % ix 0 % #item % #place) PlaceRight & set (#hudOptions % #titles) (maybeToList $ fmap (\t -> Priority 5 (defaultTitleOptions t & set (#style % #size) 0.06 & set #anchoring (-0.5) & set (#style % #color) (view #titleColour s))) (view #title s))
 
 simpleRectChart ::
   [Double] ->
@@ -244,12 +249,14 @@ simpleRectChart ::
   ChartOptions
 simpleRectChart xs s =
   mempty
-    & set #chartTree
+    & set
+      #chartTree
       (named "simpleRectChart" [RectChart s rects])
-    & set (#hudOptions % #axes)
-     [Priority 5 (defaultYAxisOptions & #ticks % #lineTick .~ Nothing & #ticks % #tick .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
+    & set
+      (#hudOptions % #axes)
+      [Priority 5 (defaultYAxisOptions & #ticks % #lineTick .~ Nothing & #ticks % #tick .~ TickRound (FormatN FSCommaPrec (Just 2) 4 True True) 5 NoTickExtend)]
   where
-    rects = zipWith (\x i -> Rect i (i+1) (min 0 x) (max 0 x)) xs [0..]
+    rects = zipWith (\x i -> Rect i (i + 1) (min 0 x) (max 0 x)) xs [0 ..]
 
 -- | histogram chart
 histChart ::
@@ -296,7 +303,7 @@ hhistCharts ::
   ChartOptions
 hhistCharts r g xs =
   mempty
-    & set #chartTree (named "hhistogram" (zipWith (\r s -> RectChart s  (flipAxes <$> r)) rects (fst <$> xs)))
+    & set #chartTree (named "hhistogram" (zipWith (\r s -> RectChart s (flipAxes <$> r)) rects (fst <$> xs)))
   where
     hcuts = gridSensible OuterPos False r g
     hs = fill hcuts . snd <$> xs
@@ -312,13 +319,12 @@ scatterChart xss = zipWith (\(s, sh) ps -> GlyphChart (s & set #glyphShape sh) p
 gpaletteStyle :: Double -> Double -> [(Style, GlyphShape)]
 gpaletteStyle s bs = zipWith (\c g -> (defaultGlyphStyle & #size .~ s & #color .~ palette c & #glyphShape .~ g & #borderSize .~ bs, g)) [0 ..] (gpalette <$> [0 .. 8])
 
-
 -- | Format quantile-style numbers
 --
 -- >>> quantileNames [0.01, 0.5, 0.99]
--- ["1%","50%","99%"]
+-- ["1.0%","50%","99%"]
 quantileNames :: (Functor f) => f Double -> f Text
-quantileNames qs = percent commaSF (Just 1) <$> qs
+quantileNames qs = percent commaSF (Just 2) <$> qs
 
 -- | @blendMidLineStyle n w@ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [Style]
@@ -365,7 +371,6 @@ quantileHistChart names qs vs = mempty & #chartTree .~ unnamed [chart'] & #hudOp
         (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
         (zip qs (drop 1 qs))
         (zip vs (drop 1 vs))
-
 
 -- | Surface chart of quantile vs quantile counts
 digitSurfaceChart ::
