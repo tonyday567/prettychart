@@ -9,3 +9,4 @@ stack.yaml.lock
 /.ghc.environment.aarch64-darwin-9.10.1
 /checklist.org
 /.ghc.environment.aarch64-darwin-9.6.6
+/.ghc.environment.aarch64-darwin-9.12.2
