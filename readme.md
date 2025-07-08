@@ -1,7 +1,7 @@
 
 # prettychart
 
-[![img](https://img.shields.io/hackage/v/prettychart.svg)](https://hackage.haskell.org/package/prettychart) [![img](https://github.com/tonyday567/prettychart/workflows/haskell-ci.yml/badge.svg)](https://github.com/tonyday567/prettychart/actions)
+[![img](https://img.shields.io/hackage/v/prettychart.svg)](https://hackage.haskell.org/package/prettychart) [![img](https://github.com/tonyday567/prettychart/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/tonyday567/prettychart/actions/workflows/haskell-ci.yml)
 
 This library contains:
 
