@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: prettychart
-version: 0.3.0.1
+version: 0.3.0.2
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2023
@@ -11,89 +11,112 @@ homepage: https://github.com/tonyday567/prettychart#readme
 bug-reports: https://github.com/tonyday567/prettychart/issues
 synopsis: Pretty print charts from ghci.
 description:
-    Serve and print charts from ghci or from an svg file, with automatic formatting.
+  Serve and print charts from ghci or from an svg file, with automatic formatting.
+
 build-type: Simple
 tested-with:
-    , GHC == 9.10.1
-    , GHC == 9.6.5
-    , GHC == 9.8.2
+  ghc ==9.6.7
+  ghc ==9.8.4
+  ghc ==9.10.2
+  ghc ==9.12.2
+
 extra-doc-files:
-    ChangeLog.md
-    other/*.svg
-    readme.md
+  ChangeLog.md
+  other/*.svg
+  readme.md
 
 source-repository head
-    type: git
-    location: https://github.com/tonyday567/prettychart
+  type: git
+  location: https://github.com/tonyday567/prettychart
 
 common ghc-options-exe-stanza
-    ghc-options:
-        -fforce-recomp
-        -funbox-strict-fields
-        -rtsopts
-        -threaded
-        -with-rtsopts=-N
+  ghc-options:
+    -fforce-recomp
+    -funbox-strict-fields
+    -rtsopts
+    -threaded
+    -with-rtsopts=-N
 
 common ghc-options-stanza
-    ghc-options:
-        -Wall
-        -Wcompat
-        -Widentities
-        -Wincomplete-record-updates
-        -Wincomplete-uni-patterns
-        -Wpartial-fields
-        -Wredundant-constraints
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wpartial-fields
+    -Wredundant-constraints
 
-common ghc2021-stanza
-    default-language: GHC2021
+common ghc2024-additions
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    DisambiguateRecordFields
+    ExplicitNamespaces
+    GADTs
+    LambdaCase
+    MonoLocalBinds
+    RoleAnnotations
+
+common ghc2024-stanza
+  if impl(ghc >=9.10)
+    default-language:
+      GHC2024
+  else
+    import: ghc2024-additions
+    default-language:
+      GHC2021
 
 library
-    import: ghc-options-stanza
-    import: ghc2021-stanza
-    hs-source-dirs: src
-    build-depends:
-        , async         >=2.2.4 && <2.3
-        , base          >=4.14 && <5
-        , box           >=0.9 && <0.10
-        , bytestring    >=0.11.3 && <0.13
-        , chart-svg     >=0.8 && <0.9
-        , containers    >=0.6 && <0.8
-        , filepath      >=1.4 && <1.6
-        , fsnotify      >=0.4.1 && <0.5
-        , markup-parse  >=0.1 && <0.2
-        , numhask-space >=0.10 && <0.14
-        , optics-core   >=0.4 && <0.5
-        , text          >=1.2 && <2.2
-        , time          >=1.9 && <1.15
-        , web-rep       >=0.12.1 && <0.14
-    exposed-modules:
-        Prettychart
-        Prettychart.Any
-        Prettychart.Charts
-        Prettychart.Server
+  import: ghc-options-stanza
+  import: ghc2024-stanza
+  hs-source-dirs: src
+  build-depends:
+    async >=2.2.4 && <2.3,
+    base >=4.14 && <5,
+    box >=0.9 && <0.10,
+    bytestring >=0.11.3 && <0.13,
+    chart-svg >=0.8 && <0.9,
+    containers >=0.6 && <0.9,
+    filepath >=1.4 && <1.6,
+    fsnotify >=0.4.1 && <0.5,
+    markup-parse >=0.1 && <0.3,
+    numhask-space >=0.10 && <0.14,
+    optics-core >=0.4 && <0.5,
+    text >=1.2 && <2.2,
+    time >=1.9 && <1.15,
+    web-rep >=0.12.1 && <0.15,
+
+  exposed-modules:
+    Prettychart
+    Prettychart.Any
+    Prettychart.Charts
+    Prettychart.Server
 
 executable prettychart-watch
-    import: ghc-options-exe-stanza
-    import: ghc-options-stanza
-    import: ghc2021-stanza
-    main-is: prettychart-watch.hs
-    hs-source-dirs: app
-    build-depends:
-        , async                >=2.2.4 && <2.3
-        , base                 >=4.14 && <5
-        , box                  >=0.9.3 && <0.10
-        , optics-core          >=0.4.1 && <0.5
-        , optparse-applicative >=0.17 && <0.19
-        , prettychart
-        , web-rep              >=0.12.1 && <0.14
-    ghc-options: -O2
+  import: ghc-options-exe-stanza
+  import: ghc-options-stanza
+  import: ghc2024-stanza
+  main-is: prettychart-watch.hs
+  hs-source-dirs: app
+  build-depends:
+    async >=2.2.4 && <2.3,
+    base >=4.14 && <5,
+    box >=0.9.3 && <0.10,
+    optics-core >=0.4.1 && <0.5,
+    optparse-applicative >=0.17 && <0.20,
+    prettychart,
+    web-rep >=0.12.1 && <0.15,
+
+  ghc-options: -O2
 
 test-suite doctests
-    import: ghc2021-stanza
-    main-is: doctests.hs
-    hs-source-dirs: test
-    build-depends:
-        , base             >=4.14 && <5
-        , doctest-parallel >=0.3 && <0.4
-    ghc-options: -threaded
-    type: exitcode-stdio-1.0
+  import: ghc2024-stanza
+  main-is: doctests.hs
+  hs-source-dirs: test
+  build-depends:
+    base >=4.14 && <5,
+    doctest-parallel >=0.3 && <0.5,
+
+  ghc-options: -threaded
+  type: exitcode-stdio-1.0
