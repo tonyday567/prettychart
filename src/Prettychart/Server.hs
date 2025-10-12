@@ -12,6 +12,7 @@ module Prettychart.Server
     watchSvg,
     svgEvent,
     displayFile,
+    animate,
   )
 where
 
@@ -28,11 +29,14 @@ import Data.ByteString.Char8 (pack)
 import Data.Maybe
 import Data.Text.Encoding
 import MarkupParse
+import NumHask.Space
 import Optics.Core hiding (element)
 import Prettychart.Any
 import System.FSNotify
 import System.FilePath
 import Web.Rep
+import Control.Lens qualified as Lens
+import Data.Data.Lens qualified as Lens
 
 -- | 'Page' containing a web socket and javascript needed to run it.
 chartSocketPage :: Maybe ByteString -> Page
@@ -128,3 +132,11 @@ displayFile scfg page = do
   (Box c e, q) <- toBoxM Single
   x <- async $ serveSocketBox scfg page (Box toStdout (decodeUtf8 . replace "prettychart" <$> e))
   pure (witherC (B.readFile >>> fmap Just) c, cancel x >> q)
+
+-- | animate a ChartOptions with a function
+--
+-- >> animate 0.04 100 lineExample (\x -> over chroma' (*x))
+animate :: Double -> Int -> (Double -> ChartOptions) -> CoEmitter IO ChartOptions
+animate secs g f = gapEffect . fmap (secs/fromIntegral g,) <$> qList (fmap f grain)
+  where
+    grain = grid OuterPos (Range 0 1) g
