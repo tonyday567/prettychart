@@ -43,7 +43,6 @@ import Chart hiding (abs)
 import Control.Category ((>>>))
 import Data.Bifunctor
 import Data.Bool
-import Data.Foldable
 import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.Maybe
