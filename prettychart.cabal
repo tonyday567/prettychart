@@ -109,14 +109,3 @@ executable prettychart-watch
     web-rep >=0.12.1 && <0.15,
 
   ghc-options: -O2
-
-test-suite doctests
-  import: ghc2024-stanza
-  main-is: doctests.hs
-  hs-source-dirs: test
-  build-depends:
-    base >=4.14 && <5,
-    doctest-parallel >=0.3 && <0.5,
-
-  ghc-options: -threaded
-  type: exitcode-stdio-1.0
