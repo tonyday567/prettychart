@@ -114,3 +114,25 @@ executable prettychart-watch
     web-rep >=0.12.1 && <0.15,
 
   ghc-options: -O2
+
+executable prettychart-serve
+  import: ghc-options-exe-stanza
+  import: ghc-options-stanza
+  import: ghc2024-stanza
+  main-is: prettychart-serve.hs
+  hs-source-dirs: app
+  build-depends:
+    async >=2.2.4 && <2.3,
+    base >=4.14 && <5,
+    bytestring >=0.11.3 && <0.13,
+    chart-svg >=0.8 && <0.9,
+    filepath >=1.4 && <1.6,
+    fsnotify >=0.4.1 && <0.5,
+    optics-core >=0.4.1 && <0.5,
+    optparse-applicative >=0.17 && <0.20,
+    prettychart,
+    process >=1.6 && <1.7,
+    text >=1.2 && <2.2,
+    web-rep >=0.12.1 && <0.15,
+
+  ghc-options: -O2
