@@ -85,6 +85,11 @@ library
     optics-core >=0.4 && <0.5,
     text >=1.2 && <2.2,
     time >=1.9 && <1.15,
+    atomic-css >=0.2 && <0.3,
+    http-types >=0.12 && <0.13,
+    hyperbole >=0.6 && <0.7,
+    wai >=3.2 && <3.3,
+    warp >=3.3 && <3.5,
     web-rep >=0.12.1 && <0.15,
 
   exposed-modules:

@@ -3,7 +3,8 @@
 
 -- | Serve a chart web page with a web socket in it, that accepts 'ChartOptions'.
 module Prettychart.Server
-  ( startChartServer,
+  ( -- * Web-Rep (original)
+    startChartServer,
     startChartServerWith,
     printChart,
     chartSocketPage,
@@ -12,11 +13,15 @@ module Prettychart.Server
     watchSvg,
     svgEvent,
     displayFile,
+    -- * Hyperbole (new)
+    ChartServerConfig (..),
+    defaultChartServerConfig,
+    startChartServerHyperbole,
   )
 where
 
 import Box
-import Chart
+import Chart hiding (text)
 import Control.Category ((>>>))
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async
@@ -25,9 +30,15 @@ import Data.Bool
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 (pack)
+import Data.ByteString.Lazy qualified as BL
+import Data.IORef
 import Data.Maybe
+import Data.Text (Text)
 import Data.Text.Encoding
-import MarkupParse
+import MarkupParse qualified as MP
+import Network.HTTP.Types (ok200)
+import Network.Wai
+import Network.Wai.Handler.Warp (run)
 import Optics.Core hiding (element)
 import Prettychart.Any
 import System.FSNotify
@@ -45,7 +56,7 @@ chartSocketPage title =
         refreshJsbJs
       ]
     & #htmlBody
-    .~ element "div" [Attr "class" "container"] (element "row" [Attr "class" "col"] (maybe mempty (elementc "h4" []) title) <> element_ "div" (pure $ Attr "id" "prettychart"))
+    .~ MP.element "div" [MP.Attr "class" "container"] (MP.element "row" [MP.Attr "class" "col"] (maybe mempty (MP.elementc "h4" []) title) <> MP.element_ "div" (pure $ MP.Attr "id" "prettychart"))
     & #cssBody
     .~ cssColorScheme
 
@@ -128,3 +139,59 @@ displayFile scfg page = do
   (Box c e, q) <- toBoxM Single
   x <- async $ serveSocketBox scfg page (Box toStdout (decodeUtf8 . replace "prettychart" <$> e))
   pure (witherC (B.readFile >>> fmap Just) c, cancel x >> q)
+
+-- ============================================================================
+-- Hyperbole 0.6 Implementation (New)
+-- ============================================================================
+
+-- | Configuration for Hyperbole chart server
+data ChartServerConfig = ChartServerConfig
+  { serverPort :: Int,
+    serverTitle :: Maybe Text
+  }
+  deriving (Show)
+
+-- | Default configuration (port 9160, no title)
+defaultChartServerConfig :: ChartServerConfig
+defaultChartServerConfig = ChartServerConfig 9160 Nothing
+
+-- | Render chart as HTML with meta-refresh polling
+renderChartHtml :: Maybe Text -> Maybe ChartOptions -> BL.ByteString
+renderChartHtml title mChart =
+  BL.fromStrict $ encodeUtf8 $
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
+    fromMaybe "prettychart" title <>
+    "</title><meta http-equiv=\"refresh\" content=\"2\"></head><body>" <>
+    "<div class=\"container\" style=\"padding: 20px\">" <>
+    maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
+    (case mChart of
+      Just co -> renderChartOptions co
+      Nothing -> "Waiting for chart...") <>
+    "</div></body></html>"
+
+-- | Start Hyperbole chart server
+startChartServerHyperbole :: ChartServerConfig -> IO (ChartOptions -> IO Bool, IO ())
+startChartServerHyperbole cfg = do
+  chartRef <- newIORef Nothing
+
+  serverAsync <- async $
+    run (serverPort cfg) $ \_ respond -> do
+      mChart <- readIORef chartRef
+      let html = renderChartHtml (serverTitle cfg) mChart
+      let response = responseLBS ok200 [("Content-Type", "text/html; charset=utf-8")] html
+      respond response
+
+  threadDelay 100000
+
+  putStrLn $ "Chart server listening on port " <> show (serverPort cfg)
+  putStrLn $ "Open browser to http://localhost:" <> show (serverPort cfg)
+  putStrLn "(ctrl-c to quit)"
+
+  let sendChart co = do
+        writeIORef chartRef (Just co)
+        putStrLn "Chart updated - refresh browser to see changes"
+        pure True
+
+  let quitServer = cancel serverAsync
+
+  pure (sendChart, quitServer)
