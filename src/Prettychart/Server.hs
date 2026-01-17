@@ -169,20 +169,6 @@ renderChartHtml title mChart =
       Nothing -> "Waiting for chart...") <>
     "</div></body></html>"
 
--- | Render markup as HTML with meta-refresh polling
-renderByteStringHtml :: Maybe Text -> Maybe Text -> BL.ByteString
-renderByteStringHtml title mChart =
-  BL.fromStrict $ encodeUtf8 $
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
-    fromMaybe "prettychart" title <>
-    "</title><meta http-equiv=\"refresh\" content=\"2\"></head><body>" <>
-    "<div class=\"container\" style=\"padding: 20px\">" <>
-    maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
-    (case mChart of
-      Just co -> co
-      Nothing -> "Waiting for chart...") <>
-    "</div></body></html>"
-
 -- | Start Hyperbole chart server
 startChartServerHyperbole :: ChartServerConfig -> IO (Text -> IO Bool, IO ())
 startChartServerHyperbole cfg = do
@@ -203,7 +189,7 @@ startChartServerHyperbole cfg = do
 
   let sendChart content = do
         writeIORef chartRef (Just content)
-        putStrLn "Chart updated - refresh browser to see changes"
+        putStrLn "chartRef updated"
         pure True
 
   let quitServer = cancel serverAsync

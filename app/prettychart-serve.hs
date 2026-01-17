@@ -5,22 +5,18 @@
 module Main where
 
 import Chart
-import Control.Concurrent.Async
 import Chart.Examples
 import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Monad (forever)
-import System.Process (callCommand)
-import Data.ByteString.Lazy qualified as BL
-import Data.Maybe (isJust)
+import Control.Monad (forever, void, (<=<))
 import Data.Text (Text)
-import Data.Text.Encoding qualified as TE
+import Data.Text.IO qualified as TIO
+import Data.Maybe (isJust)
+import Data.Bool
 import GHC.Generics
 import Optics.Core
 import Options.Applicative
 import Prettychart
-import Prettychart.Server (ChartServerConfig (..), startChartServerHyperbole)
-import Chart.Markup (writeChartOptions)
 import System.FilePath
 import System.FSNotify
 import Web.Rep.Socket
@@ -31,12 +27,13 @@ data Run = RunWatch | RunDemo deriving (Eq, Show)
 data AppConfig = AppConfig
   { appSocketConfig :: SocketConfig,
     appRun :: Run,
-    appFilePath :: FilePath
+    appFilePath :: FilePath,
+    appWatchDir :: FilePath
   }
   deriving (Eq, Show, Generic)
 
 defaultAppConfig :: AppConfig
-defaultAppConfig = AppConfig defaultSocketConfig RunWatch "."
+defaultAppConfig = AppConfig defaultSocketConfig RunWatch "." "/tmp/watch/"
 
 parseRun :: Parser Run
 parseRun =
@@ -57,6 +54,7 @@ appParser def =
     <$> parseSocketConfig (view #appSocketConfig def)
     <*> parseRun
     <*> option str (value (view #appFilePath def) <> long "filepath" <> short 'f' <> help "file path to watch")
+    <*> option str (value (view #appWatchDir def) <> long "watchdir" <> help "watch directory for SVG files (default: /tmp/watch/)")
 
 appConfig :: AppConfig -> ParserInfo AppConfig
 appConfig def =
@@ -64,34 +62,26 @@ appConfig def =
     (appParser def <**> helper)
     (fullDesc <> progDesc "SVG file server and chart demo")
 
+onSvgChange :: (Text -> IO Bool) -> Event -> IO Bool
+onSvgChange act e = maybe (pure False) ((True <$) . (act <=< TIO.readFile)) (svgEvent' e)
+
+-- | Filter for svg file additions and modifications.
+svgEvent' :: Event -> Maybe FilePath
+svgEvent' (Added fp _ dir) = bool Nothing (Just fp) (takeExtension fp == ".svg" && dir == IsFile)
+svgEvent' (Modified fp _ dir) = bool Nothing (Just fp) (takeExtension fp == ".svg" && dir == IsFile)
+svgEvent' _ = Nothing
+
 -- | Watch SVG file and serve updates
 demoWatcher :: FilePath -> Int -> IO ()
-demoWatcher fp port = do
-  putStrLn $ "Starting file watcher on: " <> fp
+demoWatcher watchdir port = do
   let cfg = ChartServerConfig port Nothing
-  (send, stop) <- startChartServerHyperbole cfg
+  (send, _) <- startChartServerHyperbole cfg
 
-  -- Open browser automatically
-  putStrLn "Opening browser to http://localhost:9160..."
-  callCommand "open http://localhost:9160 &"
-  -- Wait for server to settle
-  threadDelay 5000000
+  -- Start file watcher in background thread
+  _ <- async $ withManager $ \mgr -> do
+    _ <- watchDir mgr watchdir (isJust . svgEvent') (void . onSvgChange send)
+    forever $ threadDelay 1000000
 
-  withManager $ \mgr -> do
-    let onSvgChange :: Event -> IO ()
-        onSvgChange e = case svgEvent e of
-          Just svgPath -> do
-            putStrLn $ "SVG file changed: " <> svgPath
-            contents <- BL.readFile svgPath
-            let text = TE.decodeUtf8 $ BL.toStrict contents
-            _ <- send text
-            pure ()
-          Nothing -> pure ()
-
-    _ <- watchDir mgr fp (isJust . svgEvent) onSvgChange
-    putStrLn "Watching for SVG changes (press Ctrl-C to stop)..."
-    threadDelay 1000000
-  putStrLn "in main thread ..."
   forever $ threadDelay 1000000
 
 -- | non-interactive server demo: start, open browser, cycle through examples
@@ -101,18 +91,13 @@ demoServer port = do
   let cfg = ChartServerConfig port Nothing
   (send, stop) <- startChartServerHyperbole cfg
 
-  -- Open browser automatically
-  putStrLn "Opening browser to http://localhost:9160..."
-  callCommand "open http://localhost:9160 &"
-
   -- Wait for server to settle
-  threadDelay 5000000
+  threadDelay 500000
 
   putStrLn "Sending unitExample..."
   let unitHtml = renderChartOptions unitExample
   _ <- send unitHtml
   threadDelay 2000000
-  putStrLn "(refresh browser to see chart)"
 
   putStrLn "Sending lineExample..."
   let lineHtml = renderChartOptions lineExample
@@ -129,8 +114,8 @@ main = do
   o <- execParser (appConfig defaultAppConfig)
   let port = view #port (appSocketConfig o)
   let r = appRun o
-  let fp = appFilePath o
+  let watchdir = view #appWatchDir o
 
   case r of
-    RunWatch -> demoWatcher fp port
+    RunWatch -> demoWatcher watchdir port
     RunDemo -> demoServer port
