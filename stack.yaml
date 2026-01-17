@@ -1,4 +1,0 @@
-resolver: nightly-2024-10-11
-
-extra-deps:
-  - chart-svg-0.7.0.0
