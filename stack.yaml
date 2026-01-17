@@ -1,5 +1,4 @@
 resolver: nightly-2024-10-11
 
 extra-deps:
-  - harpie-0.1.1.0
   - chart-svg-0.7.0.0
