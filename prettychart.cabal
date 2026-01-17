@@ -77,16 +77,11 @@ library
     bytestring >=0.11.3 && <0.13,
     chart-svg >=0.8 && <0.9,
     containers >=0.6 && <0.9,
-    filepath >=1.4 && <1.6,
-    fsnotify >=0.4.1 && <0.5,
-    markup-parse >=0.1 && <0.3,
     numhask-space >=0.10 && <0.14,
     optics-core >=0.4 && <0.5,
     text >=1.2 && <2.2,
-    time >=1.9 && <1.15,
-    atomic-css >=0.2 && <0.3,
+    time >=1.9 && <1.16,
     http-types >=0.12 && <0.13,
-    hyperbole >=0.6 && <0.7,
     wai >=3.2 && <3.3,
     warp >=3.3 && <3.5,
 
@@ -105,14 +100,12 @@ executable prettychart-serve
   build-depends:
     async >=2.2.4 && <2.3,
     base >=4.14 && <5,
-    bytestring >=0.11.3 && <0.13,
     chart-svg >=0.8 && <0.9,
     filepath >=1.4 && <1.6,
     fsnotify >=0.4.1 && <0.5,
     optics-core >=0.4.1 && <0.5,
     optparse-applicative >=0.17 && <0.20,
     prettychart,
-    process >=1.6 && <1.7,
     text >=1.2 && <2.2,
 
   ghc-options: -O2
