@@ -5,6 +5,7 @@
 module Main where
 
 import Chart
+import Control.Concurrent.Async
 import Chart.Examples
 import Control.Concurrent
 import Control.Concurrent.Async
@@ -19,6 +20,7 @@ import Optics.Core
 import Options.Applicative
 import Prettychart
 import Prettychart.Server (ChartServerConfig (..), startChartServerHyperbole)
+import Chart.Markup (writeChartOptions)
 import System.FilePath
 import System.FSNotify
 import Web.Rep.Socket
@@ -63,11 +65,17 @@ appConfig def =
     (fullDesc <> progDesc "SVG file server and chart demo")
 
 -- | Watch SVG file and serve updates
-startWatcher :: FilePath -> Int -> IO ()
-startWatcher fp port = do
+demoWatcher :: FilePath -> Int -> IO ()
+demoWatcher fp port = do
   putStrLn $ "Starting file watcher on: " <> fp
   let cfg = ChartServerConfig port Nothing
   (send, stop) <- startChartServerHyperbole cfg
+
+  -- Open browser automatically
+  putStrLn "Opening browser to http://localhost:9160..."
+  callCommand "open http://localhost:9160 &"
+  -- Wait for server to settle
+  threadDelay 5000000
 
   withManager $ \mgr -> do
     let onSvgChange :: Event -> IO ()
@@ -82,12 +90,13 @@ startWatcher fp port = do
 
     _ <- watchDir mgr fp (isJust . svgEvent) onSvgChange
     putStrLn "Watching for SVG changes (press Ctrl-C to stop)..."
-    forever $ threadDelay 1000000
-  stop
+    threadDelay 1000000
+  putStrLn "in main thread ..."
+  forever $ threadDelay 1000000
 
--- | Interactive server demo: start, open browser, cycle through examples
-startServer :: Int -> IO ()
-startServer port = do
+-- | non-interactive server demo: start, open browser, cycle through examples
+demoServer :: Int -> IO ()
+demoServer port = do
   putStrLn "Starting interactive server demo..."
   let cfg = ChartServerConfig port Nothing
   (send, stop) <- startChartServerHyperbole cfg
@@ -102,18 +111,18 @@ startServer port = do
   putStrLn "Sending unitExample..."
   let unitHtml = renderChartOptions unitExample
   _ <- send unitHtml
-  threadDelay 5000000
+  threadDelay 2000000
   putStrLn "(refresh browser to see chart)"
 
   putStrLn "Sending lineExample..."
   let lineHtml = renderChartOptions lineExample
   _ <- send lineHtml
-  threadDelay 5000000
-  putStrLn "(refresh browser to see updated chart)"
+  threadDelay 2000000
 
   putStrLn "Stopping server..."
   stop
   putStrLn "✓ Demo complete"
+
 
 main :: IO ()
 main = do
@@ -123,5 +132,5 @@ main = do
   let fp = appFilePath o
 
   case r of
-    RunWatch -> startWatcher fp port
-    RunDemo -> startServer port
+    RunWatch -> demoWatcher fp port
+    RunDemo -> demoServer port

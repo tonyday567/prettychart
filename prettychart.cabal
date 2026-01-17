@@ -98,23 +98,6 @@ library
     Prettychart.Charts
     Prettychart.Server
 
-executable prettychart-watch
-  import: ghc-options-exe-stanza
-  import: ghc-options-stanza
-  import: ghc2024-stanza
-  main-is: prettychart-watch.hs
-  hs-source-dirs: app
-  build-depends:
-    async >=2.2.4 && <2.3,
-    base >=4.14 && <5,
-    box >=0.9.3 && <0.10,
-    optics-core >=0.4.1 && <0.5,
-    optparse-applicative >=0.17 && <0.20,
-    prettychart,
-    web-rep >=0.12.1 && <0.15,
-
-  ghc-options: -O2
-
 executable prettychart-serve
   import: ghc-options-exe-stanza
   import: ghc-options-stanza

@@ -156,7 +156,7 @@ defaultChartServerConfig :: ChartServerConfig
 defaultChartServerConfig = ChartServerConfig 9160 Nothing
 
 -- | Render chart as HTML with meta-refresh polling
-renderChartHtml :: Maybe Text -> Maybe ChartOptions -> BL.ByteString
+renderChartHtml :: Maybe Text -> Maybe Text -> BL.ByteString
 renderChartHtml title mChart =
   BL.fromStrict $ encodeUtf8 $
     "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
@@ -165,12 +165,26 @@ renderChartHtml title mChart =
     "<div class=\"container\" style=\"padding: 20px\">" <>
     maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
     (case mChart of
-      Just co -> renderChartOptions co
+      Just content -> content
+      Nothing -> "Waiting for chart...") <>
+    "</div></body></html>"
+
+-- | Render markup as HTML with meta-refresh polling
+renderByteStringHtml :: Maybe Text -> Maybe Text -> BL.ByteString
+renderByteStringHtml title mChart =
+  BL.fromStrict $ encodeUtf8 $
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
+    fromMaybe "prettychart" title <>
+    "</title><meta http-equiv=\"refresh\" content=\"2\"></head><body>" <>
+    "<div class=\"container\" style=\"padding: 20px\">" <>
+    maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
+    (case mChart of
+      Just co -> co
       Nothing -> "Waiting for chart...") <>
     "</div></body></html>"
 
 -- | Start Hyperbole chart server
-startChartServerHyperbole :: ChartServerConfig -> IO (ChartOptions -> IO Bool, IO ())
+startChartServerHyperbole :: ChartServerConfig -> IO (Text -> IO Bool, IO ())
 startChartServerHyperbole cfg = do
   chartRef <- newIORef Nothing
 
@@ -187,8 +201,8 @@ startChartServerHyperbole cfg = do
   putStrLn $ "Open browser to http://localhost:" <> show (serverPort cfg)
   putStrLn "(ctrl-c to quit)"
 
-  let sendChart co = do
-        writeIORef chartRef (Just co)
+  let sendChart content = do
+        writeIORef chartRef (Just content)
         putStrLn "Chart updated - refresh browser to see changes"
         pure True
 
