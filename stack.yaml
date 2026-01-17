@@ -3,6 +3,3 @@ resolver: nightly-2024-10-11
 extra-deps:
   - harpie-0.1.1.0
   - chart-svg-0.7.0.0
-  - web-rep-0.12.3.0
-  - box-0.9.3.2
-  - box-socket-0.5.2.0

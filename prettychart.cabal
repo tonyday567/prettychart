@@ -74,7 +74,6 @@ library
   build-depends:
     async >=2.2.4 && <2.3,
     base >=4.14 && <5,
-    box >=0.9 && <0.10,
     bytestring >=0.11.3 && <0.13,
     chart-svg >=0.8 && <0.9,
     containers >=0.6 && <0.9,
@@ -90,7 +89,6 @@ library
     hyperbole >=0.6 && <0.7,
     wai >=3.2 && <3.3,
     warp >=3.3 && <3.5,
-    web-rep >=0.12.1 && <0.15,
 
   exposed-modules:
     Prettychart
@@ -116,6 +114,5 @@ executable prettychart-serve
     prettychart,
     process >=1.6 && <1.7,
     text >=1.2 && <2.2,
-    web-rep >=0.12.1 && <0.15,
 
   ghc-options: -O2

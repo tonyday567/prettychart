@@ -19,13 +19,12 @@ import Options.Applicative
 import Prettychart
 import System.FilePath
 import System.FSNotify
-import Web.Rep.Socket
 import Prelude
 
 data Run = RunWatch | RunDemo deriving (Eq, Show)
 
 data AppConfig = AppConfig
-  { appSocketConfig :: SocketConfig,
+  { appPort :: Int,
     appRun :: Run,
     appFilePath :: FilePath,
     appWatchDir :: FilePath
@@ -33,7 +32,7 @@ data AppConfig = AppConfig
   deriving (Eq, Show, Generic)
 
 defaultAppConfig :: AppConfig
-defaultAppConfig = AppConfig defaultSocketConfig RunWatch "." "/tmp/watch/"
+defaultAppConfig = AppConfig 9160 RunWatch "." "/tmp/watch/"
 
 parseRun :: Parser Run
 parseRun =
@@ -41,17 +40,14 @@ parseRun =
     <|> flag' RunWatch (long "watch" <> help "watch for svg chart files")
     <|> pure RunWatch
 
-parseSocketConfig :: SocketConfig -> Parser SocketConfig
-parseSocketConfig def =
-  SocketConfig
-    <$> option auto (value (view #host def) <> long "host" <> help "socket host")
-    <*> option auto (value (view #port def) <> long "port" <> help "socket port")
-    <*> option auto (value (view #path def) <> long "path" <> help "socket path")
+parsePort :: Int -> Parser Int
+parsePort def =
+  option auto (value def <> long "port" <> help "server port")
 
 appParser :: AppConfig -> Parser AppConfig
 appParser def =
   AppConfig
-    <$> parseSocketConfig (view #appSocketConfig def)
+    <$> parsePort (view #appPort def)
     <*> parseRun
     <*> option str (value (view #appFilePath def) <> long "filepath" <> short 'f' <> help "file path to watch")
     <*> option str (value (view #appWatchDir def) <> long "watchdir" <> help "watch directory for SVG files (default: /tmp/watch/)")
@@ -112,9 +108,9 @@ demoServer port = do
 main :: IO ()
 main = do
   o <- execParser (appConfig defaultAppConfig)
-  let port = view #port (appSocketConfig o)
+  let port = appPort o
   let r = appRun o
-  let watchdir = view #appWatchDir o
+  let watchdir = appWatchDir o
 
   case r of
     RunWatch -> demoWatcher watchdir port
