@@ -10,6 +10,7 @@ module Prettychart.Server
     ChartServerConfig (..),
     defaultChartServerConfig,
     startChartServerHyperbole,
+    startChartServerPush,
   )
 where
 
@@ -69,6 +70,20 @@ renderChartHtml title mChart =
       Nothing -> "Waiting for chart...") <>
     "</div></body></html>"
 
+-- | Render chart as HTML without meta-refresh (for push/streaming)
+renderChartHtmlPush :: Maybe Text -> Maybe Text -> BL.ByteString
+renderChartHtmlPush title mChart =
+  BL.fromStrict $ encodeUtf8 $
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
+    fromMaybe "prettychart" title <>
+    "</title></head><body>" <>
+    "<div class=\"container\" style=\"padding: 20px\">" <>
+    maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
+    (case mChart of
+      Just content -> content
+      Nothing -> "Waiting for chart...") <>
+    "</div></body></html>"
+
 -- | Start Hyperbole chart server
 startChartServerHyperbole :: ChartServerConfig -> IO (Text -> IO Bool, IO ())
 startChartServerHyperbole cfg = do
@@ -84,6 +99,33 @@ startChartServerHyperbole cfg = do
   threadDelay 100000
 
   putStrLn $ "Chart server listening on port " <> show (serverPort cfg)
+  putStrLn $ "Open browser to http://localhost:" <> show (serverPort cfg)
+  putStrLn "(ctrl-c to quit)"
+
+  let sendChart content = do
+        writeIORef chartRef (Just content)
+        putStrLn "chartRef updated"
+        pure True
+
+  let quitServer = cancel serverAsync
+
+  pure (sendChart, quitServer)
+
+-- | Start chart server for push/streaming (no auto-refresh)
+startChartServerPush :: ChartServerConfig -> IO (Text -> IO Bool, IO ())
+startChartServerPush cfg = do
+  chartRef <- newIORef Nothing
+
+  serverAsync <- async $
+    run (serverPort cfg) $ \_ respond -> do
+      mChart <- readIORef chartRef
+      let html = renderChartHtmlPush (serverTitle cfg) mChart
+      let response = responseLBS ok200 [("Content-Type", "text/html; charset=utf-8")] html
+      respond response
+
+  threadDelay 100000
+
+  putStrLn $ "Chart server (push mode) listening on port " <> show (serverPort cfg)
   putStrLn $ "Open browser to http://localhost:" <> show (serverPort cfg)
   putStrLn "(ctrl-c to quit)"
 
