@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(hlint:*)",
+      "Bash(cabal repl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
