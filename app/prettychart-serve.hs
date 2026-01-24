@@ -8,17 +8,17 @@ import Chart
 import Chart.Examples
 import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Monad (forever, void, (<=<), forM_)
-import Data.IORef
-import Data.Text (Text, pack)
-import Data.Text.IO qualified as TIO
-import Data.Maybe (isJust)
+import Control.Monad (forM_, forever, void, (<=<))
 import Data.Binary.Builder (fromByteString)
 import Data.Bool
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as BL
+import Data.IORef
+import Data.Maybe (isJust)
+import Data.Text (Text, pack)
 import Data.Text.Encoding (encodeUtf8)
-import Data.Time (getCurrentTime, diffUTCTime, UTCTime)
+import Data.Text.IO qualified as TIO
+import Data.Time (UTCTime, diffUTCTime, getCurrentTime)
 import Data.Word (Word8)
 import GHC.Generics
 import Network.HTTP.Types (ok200)
@@ -27,8 +27,8 @@ import Network.Wai.Handler.Warp (run)
 import Optics.Core
 import Options.Applicative
 import Prettychart
-import System.FilePath
 import System.FSNotify
+import System.FilePath
 import System.Process
 import Prelude
 
@@ -149,23 +149,26 @@ getMouseLocation = do
 
 -- | Counter chart generator: x -> ChartOptions
 counterChart :: Int -> ChartOptions
-counterChart x = mempty
-  { chartTree = named (pack "counter")
-      (pure $ TextChart defaultTextStyle [(pack (show x), zero)])
-  }
+counterChart x =
+  mempty
+    { chartTree =
+        named
+          (pack "counter")
+          (pure $ TextChart defaultTextStyle [(pack (show x), zero)])
+    }
 
 -- | Convert timestamp to opacity (1.0 = fresh, 0.0 = >10 seconds old)
 timestampToOpacity :: UTCTime -> UTCTime -> Double
 timestampToOpacity now ts =
   let age = realToFrac (diffUTCTime now ts) :: Double
-      maxAge = 10.0  -- 10 seconds
-  in max 0.0 (1.0 - (age / maxAge))
+      maxAge = 10.0 -- 10 seconds
+   in max 0.0 (1.0 - (age / maxAge))
 
 -- | Test mouse location reading
 testMouseRead :: IO ()
 testMouseRead = do
   putStrLn "Testing mouse location reading..."
-  forM_ [1..10 :: Int] $ \i -> do
+  forM_ [1 .. 10 :: Int] $ \i -> do
     mLoc <- getMouseLocation
     case mLoc of
       Just (x, y) -> putStrLn $ "[" <> show i <> "] Mouse: " <> show (x, y)
@@ -198,47 +201,51 @@ pushServer cfg = do
 -- | Serve simple HTML page with EventSource
 serveIndexHtml :: (Response -> IO ResponseReceived) -> IO ResponseReceived
 serveIndexHtml respond = do
-  let html = BL.fromStrict $ encodeUtf8 $
-        "<!DOCTYPE html><html><head><title>SSE Push Test</title></head><body>" <>
-        "<h1>SSE Push Test - Frame Stream</h1>" <>
-        "<div id='count'>Frames received: 0</div>" <>
-        "<div id='svg'></div>" <>
-        "<script>" <>
-        "let count = 0;" <>
-        "const es = new EventSource('/sse');" <>
-        "es.onmessage = (e) => { " <>
-        "  count++; " <>
-        "  document.getElementById('count').innerText = 'Frames received: ' + count; " <>
-        "  document.getElementById('svg').innerHTML = e.data; " <>
-        "}; " <>
-        "es.onerror = (e) => console.error('SSE error', e);" <>
-        "</script>" <>
-        "</body></html>"
-  respond $ responseLBS ok200
-    [("Content-Type", "text/html; charset=utf-8")]
-    html
+  let html =
+        BL.fromStrict $
+          encodeUtf8 $
+            "<!DOCTYPE html><html><head><title>SSE Push Test</title></head><body>"
+              <> "<h1>SSE Push Test - Frame Stream</h1>"
+              <> "<div id='count'>Frames received: 0</div>"
+              <> "<div id='svg'></div>"
+              <> "<script>"
+              <> "let count = 0;"
+              <> "const es = new EventSource('/sse');"
+              <> "es.onmessage = (e) => { "
+              <> "  count++; "
+              <> "  document.getElementById('count').innerText = 'Frames received: ' + count; "
+              <> "  document.getElementById('svg').innerHTML = e.data; "
+              <> "}; "
+              <> "es.onerror = (e) => console.error('SSE error', e);"
+              <> "</script>"
+              <> "</body></html>"
+  respond $
+    responseLBS
+      ok200
+      [("Content-Type", "text/html; charset=utf-8")]
+      html
 
 -- | Stream frames via SSE
 streamFrames :: (Response -> IO ResponseReceived) -> Int -> Int -> IO ResponseReceived
 streamFrames respond numFrames frameDelay = do
   let headers =
-        [ ("Content-Type", "text/event-stream")
-        , ("Cache-Control", "no-cache")
-        , ("Connection", "keep-alive")
-        , ("X-Accel-Buffering", "no")
+        [ ("Content-Type", "text/event-stream"),
+          ("Cache-Control", "no-cache"),
+          ("Connection", "keep-alive"),
+          ("X-Accel-Buffering", "no")
         ]
 
   let streamBody write flush = do
         putStrLn "Client connected, waiting 3 seconds before push..."
-        threadDelay 3000000  -- 3 second startup delay
+        threadDelay 3000000 -- 3 second startup delay
         putStrLn "Starting frame push..."
 
-        forM_ [0..numFrames-1] $ \i -> do
+        forM_ [0 .. numFrames - 1] $ \i -> do
           let co = counterChart i
           let svg = encodeChartOptions co
           -- Remove newlines from SVG to send as single SSE message
           let svgOneLine = BS.filter (/= (10 :: Word8)) svg
-          let frameBytes = BS.pack (map (fromIntegral . fromEnum) ("data: " :: String)) <> svgOneLine <> BS.pack (map (fromIntegral . fromEnum) ("\n\n" :: String))
+          let frameBytes = BS.pack (fmap (fromIntegral . fromEnum) ("data: " :: String)) <> svgOneLine <> BS.pack (fmap (fromIntegral . fromEnum) ("\n\n" :: String))
           _ <- write (fromByteString frameBytes)
           _ <- flush
           threadDelay frameDelay
@@ -246,11 +253,10 @@ streamFrames respond numFrames frameDelay = do
         putStrLn $ "✓ Push complete (" <> show numFrames <> " frames sent)"
         putStrLn "Stream holding open with keep-alive..."
         forever $ do
-          let keepAlive = BS.pack (map (fromIntegral . fromEnum) (": keep-alive\n\n" :: String))
+          let keepAlive = BS.pack (fmap (fromIntegral . fromEnum) (": keep-alive\n\n" :: String))
           _ <- write (fromByteString keepAlive)
           _ <- flush
-          threadDelay 30000000  -- 30 second keep-alive interval
-
+          threadDelay 30000000 -- 30 second keep-alive interval
   respond $ responseStream ok200 headers streamBody
 
 -- | Mouse trail server: collect mouse positions and stream as glyph chart
@@ -277,9 +283,9 @@ mouseServer cfg = do
               -- Keep only points from last 10 seconds
               cutoff = 10.0 :: Double
               cutTrail = filter (\(_, _, ts) -> (realToFrac (diffUTCTime now ts) :: Double) <= cutoff) trail'
-          in take 10000 cutTrail  -- safety limit
+           in take 10000 cutTrail -- safety limit
       Nothing -> pure ()
-    threadDelay 10000  -- 10ms = ~100Hz polling
+    threadDelay 10000 -- 10ms = ~100Hz polling
 
   -- WAI app to serve mouse trail as HTML + SSE
   let app :: Application
@@ -294,28 +300,32 @@ mouseServer cfg = do
 -- | Serve HTML page with mouse trail EventSource
 serveMouseIndexHtml :: (Response -> IO ResponseReceived) -> IO ResponseReceived
 serveMouseIndexHtml respond = do
-  let html = BL.fromStrict $ encodeUtf8 $
-        "<!DOCTYPE html><html><head><title>Mouse Trail</title></head><body>" <>
-        "<h1>Mouse Trail Chart</h1>" <>
-        "<div id='svg'></div>" <>
-        "<script>" <>
-        "const es = new EventSource('/sse');" <>
-        "es.onmessage = (e) => { document.getElementById('svg').innerHTML = e.data; };" <>
-        "es.onerror = (e) => console.error('SSE error', e);" <>
-        "</script>" <>
-        "</body></html>"
-  respond $ responseLBS ok200
-    [("Content-Type", "text/html; charset=utf-8")]
-    html
+  let html =
+        BL.fromStrict $
+          encodeUtf8 $
+            "<!DOCTYPE html><html><head><title>Mouse Trail</title></head><body>"
+              <> "<h1>Mouse Trail Chart</h1>"
+              <> "<div id='svg'></div>"
+              <> "<script>"
+              <> "const es = new EventSource('/sse');"
+              <> "es.onmessage = (e) => { document.getElementById('svg').innerHTML = e.data; };"
+              <> "es.onerror = (e) => console.error('SSE error', e);"
+              <> "</script>"
+              <> "</body></html>"
+  respond $
+    responseLBS
+      ok200
+      [("Content-Type", "text/html; charset=utf-8")]
+      html
 
 -- | Stream mouse trail as glyph chart via SSE
 streamMouseTrail :: (Response -> IO ResponseReceived) -> IORef [(Double, Double, UTCTime)] -> Int -> IO ResponseReceived
 streamMouseTrail respond trailRef frameDelay = do
   let headers =
-        [ ("Content-Type", "text/event-stream")
-        , ("Cache-Control", "no-cache")
-        , ("Connection", "keep-alive")
-        , ("X-Accel-Buffering", "no")
+        [ ("Content-Type", "text/event-stream"),
+          ("Cache-Control", "no-cache"),
+          ("Connection", "keep-alive"),
+          ("X-Accel-Buffering", "no")
         ]
 
   let streamBody write flush = do
@@ -324,12 +334,12 @@ streamMouseTrail respond trailRef frameDelay = do
           now <- getCurrentTime
           trail <- readIORef trailRef
 
-          let glyphPoints = map (\(x, y, ts) -> GlyphChart (defaultGlyphStyle & set (#color % opac') (timestampToOpacity now ts)) [Point x y]) trail
+          let glyphPoints = fmap (\(x, y, ts) -> GlyphChart (defaultGlyphStyle & set (#color % opac') (timestampToOpacity now ts)) [Point x y]) trail
 
           let co = mempty & set #chartTree (unnamed glyphPoints) & set #hudOptions defaultHudOptions
           let svg = encodeChartOptions co
           let svgOneLine = BS.filter (/= (10 :: Word8)) svg
-          let frameBytes = BS.pack (map (fromIntegral . fromEnum) ("data: " :: String)) <> svgOneLine <> BS.pack (map (fromIntegral . fromEnum) ("\n\n" :: String))
+          let frameBytes = BS.pack (fmap (fromIntegral . fromEnum) ("data: " :: String)) <> svgOneLine <> BS.pack (fmap (fromIntegral . fromEnum) ("\n\n" :: String))
           _ <- write (fromByteString frameBytes)
           _ <- flush
           threadDelay frameDelay

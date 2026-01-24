@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: prettychart
-version: 0.3.0.3
+version: 0.4.0.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2023
@@ -15,10 +15,9 @@ description:
 
 build-type: Simple
 tested-with:
-  ghc ==9.6.7
-  ghc ==9.8.4
   ghc ==9.10.2
   ghc ==9.12.2
+  ghc ==9.14.1
 
 extra-doc-files:
   ChangeLog.md
@@ -47,44 +46,24 @@ common ghc-options-stanza
     -Wpartial-fields
     -Wredundant-constraints
 
-common ghc2024-additions
-  default-extensions:
-    DataKinds
-    DerivingStrategies
-    DisambiguateRecordFields
-    ExplicitNamespaces
-    GADTs
-    LambdaCase
-    MonoLocalBinds
-    RoleAnnotations
-
-common ghc2024-stanza
-  if impl(ghc >=9.10)
-    default-language:
-      GHC2024
-  else
-    import: ghc2024-additions
-    default-language:
-      GHC2021
-
 library
   import: ghc-options-stanza
-  import: ghc2024-stanza
+  default-language: GHC2024
   hs-source-dirs: src
   build-depends:
     async >=2.2.4 && <2.3,
     base >=4.14 && <5,
+    binary >=0.8 && <0.9,
     bytestring >=0.11.3 && <0.13,
     chart-svg >=0.8 && <0.9,
     containers >=0.6 && <0.9,
+    http-types >=0.12 && <0.13,
     numhask-space >=0.10 && <0.14,
     optics-core >=0.4 && <0.5,
     text >=1.2 && <2.2,
     time >=1.9 && <1.16,
-    http-types >=0.12 && <0.13,
     wai >=3.2 && <3.3,
     warp >=3.3 && <3.5,
-    binary,
 
   exposed-modules:
     Prettychart
@@ -95,12 +74,13 @@ library
 executable prettychart-serve
   import: ghc-options-exe-stanza
   import: ghc-options-stanza
-  import: ghc2024-stanza
+  default-language: GHC2024
   main-is: prettychart-serve.hs
   hs-source-dirs: app
   build-depends:
     async >=2.2.4 && <2.3,
     base >=4.14 && <5,
+    binary >=0.8 && <0.9,
     bytestring >=0.11.3 && <0.13,
     chart-svg >=0.8 && <0.9,
     filepath >=1.4 && <1.6,
@@ -114,5 +94,5 @@ executable prettychart-serve
     time >=1.9 && <1.16,
     wai >=3.2 && <3.3,
     warp >=3.3 && <3.5,
-    binary,
+
   ghc-options: -O2

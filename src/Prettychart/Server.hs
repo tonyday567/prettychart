@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Serve a chart web page with a web socket in it, that accepts 'ChartOptions'.
@@ -6,6 +5,7 @@ module Prettychart.Server
   ( -- * Socket Config (legacy, for migration)
     SocketConfig (..),
     defaultSocketConfig,
+
     -- * Hyperbole (new)
     ChartServerConfig (..),
     defaultChartServerConfig,
@@ -59,30 +59,28 @@ defaultChartServerConfig = ChartServerConfig 9160 Nothing
 -- | Render chart as HTML with meta-refresh polling
 renderChartHtml :: Maybe Text -> Maybe Text -> BL.ByteString
 renderChartHtml title mChart =
-  BL.fromStrict $ encodeUtf8 $
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
-    fromMaybe "prettychart" title <>
-    "</title><meta http-equiv=\"refresh\" content=\"2\"></head><body>" <>
-    "<div class=\"container\" style=\"padding: 20px\">" <>
-    maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
-    (case mChart of
-      Just content -> content
-      Nothing -> "Waiting for chart...") <>
-    "</div></body></html>"
+  BL.fromStrict $
+    encodeUtf8 $
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>"
+        <> fromMaybe "prettychart" title
+        <> "</title><meta http-equiv=\"refresh\" content=\"2\"></head><body>"
+        <> "<div class=\"container\" style=\"padding: 20px\">"
+        <> maybe "" (\t -> "<h4>" <> t <> "</h4>") title
+        <> fromMaybe "Waiting for chart..." mChart
+        <> "</div></body></html>"
 
 -- | Render chart as HTML without meta-refresh (for push/streaming)
 renderChartHtmlPush :: Maybe Text -> Maybe Text -> BL.ByteString
 renderChartHtmlPush title mChart =
-  BL.fromStrict $ encodeUtf8 $
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" <>
-    fromMaybe "prettychart" title <>
-    "</title></head><body>" <>
-    "<div class=\"container\" style=\"padding: 20px\">" <>
-    maybe "" (\t -> "<h4>" <> t <> "</h4>") title <>
-    (case mChart of
-      Just content -> content
-      Nothing -> "Waiting for chart...") <>
-    "</div></body></html>"
+  BL.fromStrict $
+    encodeUtf8 $
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>"
+        <> fromMaybe "prettychart" title
+        <> "</title></head><body>"
+        <> "<div class=\"container\" style=\"padding: 20px\">"
+        <> maybe "" (\t -> "<h4>" <> t <> "</h4>") title
+        <> fromMaybe "Waiting for chart..." mChart
+        <> "</div></body></html>"
 
 -- | Start Hyperbole chart server
 startChartServerHyperbole :: ChartServerConfig -> IO (Text -> IO Bool, IO ())
