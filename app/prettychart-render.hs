@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedLabels #-}
+
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Render a .chart file to SVG.
