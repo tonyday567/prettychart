@@ -21,9 +21,9 @@ import Network.HTTP.Types (ok200)
 import Network.Wai (Application, Response, ResponseReceived, pathInfo, responseLBS, responseStream)
 import Network.Wai.Handler.Warp (run)
 import Options.Applicative
-import Prelude
 import System.Exit (exitFailure)
 import System.FilePath (dropExtension, takeFileName, (<.>), (</>))
+import Prelude
 
 data Mode = WriteFile FilePath | Serve Int
   deriving (Show)
@@ -43,7 +43,7 @@ parseConfig =
             <|> ( WriteFile
                     <$> option
                       str
-                      ( long "output" <> short 'o' <> metavar "FILE" <> help "output SVG file (default: <input>.svg)")
+                      (long "output" <> short 'o' <> metavar "FILE" <> help "output SVG file (default: <input>.svg)")
                 )
             <|> pure (WriteFile "")
         )

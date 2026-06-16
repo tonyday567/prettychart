@@ -24,7 +24,7 @@ import GHC.Generics
 import Network.HTTP.Types (ok200)
 import Network.Wai (Application, Response, ResponseReceived, pathInfo, responseLBS, responseStream)
 import Network.Wai.Handler.Warp (run)
-import NumHask.Space (grid, Pos (LowerPos))
+import NumHask.Space (Pos (LowerPos), grid)
 import Optics.Core
 import Options.Applicative
 import Prettychart
@@ -83,9 +83,9 @@ parseWheelParam def =
     )
   where
     readWheel "lightness" = Just WLightness
-    readWheel "chroma"   = Just WChroma
-    readWheel "hue"      = Just WHue
-    readWheel _          = Nothing
+    readWheel "chroma" = Just WChroma
+    readWheel "hue" = Just WHue
+    readWheel _ = Nothing
 
 appParser :: AppConfig -> Parser AppConfig
 appParser def =
@@ -376,13 +376,13 @@ wheelFrame :: WheelParam -> Double -> ChartOptions
 wheelFrame param t = case param of
   WLightness ->
     let l = 0.5 + 0.5 * sin (t * 2 * pi / 8)
-    in wheelChart (rotatedWheelPoints 0) 0.01 50 l 0.5 (palette <$> [0 .. 7])
+     in wheelChart (rotatedWheelPoints 0) 0.01 50 l 0.5 (palette <$> [0 .. 7])
   WChroma ->
     let chroma = 0.1 + 0.9 * (0.5 + 0.5 * sin (t * 2 * pi / 8))
-    in wheelChart (rotatedWheelPoints 0) 0.01 50 0.5 chroma (palette <$> [0 .. 7])
+     in wheelChart (rotatedWheelPoints 0) 0.01 50 0.5 chroma (palette <$> [0 .. 7])
   WHue ->
     let hoffset = t * 36 -- ~1 full rotation per 10 seconds at 10 cps
-    in wheelChart (rotatedWheelPoints hoffset) 0.01 50 0.5 0.5 (palette <$> [0 .. 7])
+     in wheelChart (rotatedWheelPoints hoffset) 0.01 50 0.5 0.5 (palette <$> [0 .. 7])
 
 -- | Generate a color wheel chart from a wheel-point generator
 wheelChart ::
@@ -431,12 +431,12 @@ wheelChart wpGen s grain l maxchroma cs =
 -- | Generate wheel points (chroma-hue grid), optionally rotated by hoffset degrees
 rotatedWheelPoints :: Double -> Int -> Double -> Double -> [(Point Double, Colour)]
 rotatedWheelPoints hoffset grain l maxchroma =
-  (\(Point c h) ->
-    let h' = wrap360 (h + hoffset)
-     in ( uncurry Point $ view (re xy2ch') (c, h'),
-          view lcha2colour' (LCHA l c h' 1)
-        )
-    )
+  ( \(Point c h) ->
+      let h' = wrap360 (h + hoffset)
+       in ( uncurry Point $ view (re xy2ch') (c, h'),
+            view lcha2colour' (LCHA l c h' 1)
+          )
+  )
     <$> grid LowerPos (Rect 0 maxchroma 0 360) (Point grain grain)
   where
     wrap360 x = x - 360 * fromIntegral (floor (x / 360) :: Int)
@@ -475,7 +475,6 @@ streamWheelFrames respond param frameDelay = do
   let streamBody write flush = do
         putStrLn "Wheel client connected, starting animation..."
         threadDelay 1000000 -- 1 second startup delay
-
         let loop :: Double -> IO ()
             loop t = do
               let co = wheelFrame param t
