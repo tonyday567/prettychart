@@ -13,8 +13,18 @@ source-repository-package
 
 source-repository-package
   type: git
-  location: https://github.com/tonyday567/circuits-parser.git
+  location: https://github.com/tonyday567/numhask.git
   branch: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/formatn.git
+  branch: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits-parser.git
+  branch: feat/ci-cleanup
 
 source-repository-package
   type: git
