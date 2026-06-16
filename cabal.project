@@ -1,12 +1,5 @@
 packages:
   prettychart.cabal
-  ../chart-svg/chart-svg.cabal
-  ../numhask/numhask.cabal
-  ../numhask-space/numhask-space.cabal
-  ../formatn/formatn.cabal
-  ../circuits/circuits.cabal
-  ../circuits-meter/circuits-meter.cabal
-  ../circuits-parser/circuits-parser.cabal
 
 write-ghc-environment-files: always
 
