@@ -24,6 +24,7 @@ import GHC.Generics
 import Network.HTTP.Types (ok200)
 import Network.Wai (Application, Response, ResponseReceived, pathInfo, responseLBS, responseStream)
 import Network.Wai.Handler.Warp (run)
+import NumHask.Space (grid, Pos (LowerPos))
 import Optics.Core
 import Options.Applicative
 import Prettychart
@@ -32,7 +33,10 @@ import System.FilePath
 import System.Process
 import Prelude
 
-data Run = RunWatch | RunDemo | RunPush | RunMouse deriving (Eq, Show)
+data Run = RunWatch | RunDemo | RunPush | RunMouse | RunWheel deriving (Eq, Show)
+
+data WheelParam = WLightness | WChroma | WHue
+  deriving (Eq, Show, Read)
 
 data AppConfig = AppConfig
   { appPort :: Int,
@@ -40,18 +44,20 @@ data AppConfig = AppConfig
     appFilePath :: FilePath,
     appWatchDir :: FilePath,
     appPushSeconds :: Int,
-    appChartsPerSecond :: Int
+    appChartsPerSecond :: Int,
+    appWheelParam :: WheelParam
   }
   deriving (Eq, Show, Generic)
 
 defaultAppConfig :: AppConfig
-defaultAppConfig = AppConfig 9160 RunWatch "." "/tmp/watch/" 5 10
+defaultAppConfig = AppConfig 9160 RunWatch "." "/tmp/watch/" 5 10 WLightness
 
 parseRun :: Parser Run
 parseRun =
   flag' RunDemo (long "demo" <> help "run interactive server demo")
     <|> flag' RunPush (long "push" <> help "run SSE push test (frame streaming)")
     <|> flag' RunMouse (long "mouse" <> help "stream mouse location as glyph chart")
+    <|> flag' RunWheel (long "wheel" <> help "animate color wheel slices via SSE")
     <|> flag' RunWatch (long "watch" <> help "watch for svg chart files")
     <|> pure RunWatch
 
@@ -67,6 +73,20 @@ parseChartsPerSecond :: Int -> Parser Int
 parseChartsPerSecond def =
   option auto (value def <> long "charts-per-second" <> help "charts per second for push test")
 
+parseWheelParam :: WheelParam -> Parser WheelParam
+parseWheelParam def =
+  option
+    (maybeReader readWheel)
+    ( value def
+        <> long "wheel-param"
+        <> help "parameter to animate: lightness, chroma, or hue"
+    )
+  where
+    readWheel "lightness" = Just WLightness
+    readWheel "chroma"   = Just WChroma
+    readWheel "hue"      = Just WHue
+    readWheel _          = Nothing
+
 appParser :: AppConfig -> Parser AppConfig
 appParser def =
   AppConfig
@@ -76,6 +96,7 @@ appParser def =
     <*> option str (value (view #appWatchDir def) <> long "watchdir" <> help "watch directory for SVG files (default: /tmp/watch/)")
     <*> parsePushSeconds (view #appPushSeconds def)
     <*> parseChartsPerSecond (view #appChartsPerSecond def)
+    <*> parseWheelParam (view #appWheelParam def)
 
 appConfig :: AppConfig -> ParserInfo AppConfig
 appConfig def =
@@ -346,6 +367,171 @@ streamMouseTrail respond trailRef frameDelay = do
 
   respond $ responseStream ok200 headers streamBody
 
+-- ============================================================================
+-- Color Wheel Animation Server
+-- ============================================================================
+
+-- | Generate a single wheel frame for a given parameter at time t (seconds)
+wheelFrame :: WheelParam -> Double -> ChartOptions
+wheelFrame param t = case param of
+  WLightness ->
+    let l = 0.5 + 0.5 * sin (t * 2 * pi / 8)
+    in wheelChart (rotatedWheelPoints 0) 0.01 50 l 0.5 (palette <$> [0 .. 7])
+  WChroma ->
+    let chroma = 0.1 + 0.9 * (0.5 + 0.5 * sin (t * 2 * pi / 8))
+    in wheelChart (rotatedWheelPoints 0) 0.01 50 0.5 chroma (palette <$> [0 .. 7])
+  WHue ->
+    let hoffset = t * 36 -- ~1 full rotation per 10 seconds at 10 cps
+    in wheelChart (rotatedWheelPoints hoffset) 0.01 50 0.5 0.5 (palette <$> [0 .. 7])
+
+-- | Generate a color wheel chart from a wheel-point generator
+wheelChart ::
+  (Int -> Double -> Double -> [(Point Double, Colour)]) ->
+  Double ->
+  Int ->
+  Double ->
+  Double ->
+  [Colour] ->
+  ChartOptions
+wheelChart wpGen s grain l maxchroma cs =
+  mempty
+    & set #hudOptions defaultHudOptions
+    & set
+      #chartTree
+      ( named "bbox" [anchorRect]
+          <> named "dots" (dotRef <$> cs)
+          <> named "wheel" (dotWheel <$> filter (validColour . snd) (wpGen grain l maxchroma))
+      )
+  where
+    anchorRect =
+      RectChart
+        (defaultRectStyle & set #color transparent & set #borderSize 0)
+        [Rect (-0.3) 0.3 (-0.3) 0.3]
+    dotRef x =
+      let p = colour2Point x
+       in GlyphChart
+            ( defaultGlyphStyle
+                & set #size 0.08
+                & set #color x
+                & set #borderColor (Colour 0.5 0.5 0.5 1)
+                & set #glyphShape CircleGlyph
+            )
+            [p]
+    colour2Point c = review lcha2colour' c & (\(LCHA _ ch h _) -> uncurry Point (review xy2ch' (ch, h)))
+    dotWheel (p, c) =
+      GlyphChart
+        ( defaultGlyphStyle
+            & set #size s
+            & set #color c
+            & set #borderSize 0
+            & set #glyphShape CircleGlyph
+        )
+        [p]
+
+-- | Generate wheel points (chroma-hue grid), optionally rotated by hoffset degrees
+rotatedWheelPoints :: Double -> Int -> Double -> Double -> [(Point Double, Colour)]
+rotatedWheelPoints hoffset grain l maxchroma =
+  (\(Point c h) ->
+    let h' = wrap360 (h + hoffset)
+     in ( uncurry Point $ view (re xy2ch') (c, h'),
+          view lcha2colour' (LCHA l c h' 1)
+        )
+    )
+    <$> grid LowerPos (Rect 0 maxchroma 0 360) (Point grain grain)
+  where
+    wrap360 x = x - 360 * fromIntegral (floor (x / 360) :: Int)
+
+-- | Serve color wheel animation via SSE
+wheelServer :: AppConfig -> IO ()
+wheelServer cfg = do
+  let port = appPort cfg
+  let cps = appChartsPerSecond cfg
+  let param = appWheelParam cfg
+  let frameDelay = round (1000000.0 / fromIntegral cps :: Double)
+
+  putStrLn $ "Starting wheel animation on port " <> show port
+  putStrLn $ "Parameter: " <> show param <> " at " <> show cps <> " fps"
+  putStrLn $ "Open browser to http://localhost:" <> show port
+
+  let app :: Application
+      app _request respond = do
+        case pathInfo _request of
+          ["sse"] -> streamWheelFrames respond param frameDelay
+          _ -> serveWheelIndexHtml respond param
+
+  putStrLn "Server started, press ctrl-c to stop"
+  run port app
+
+-- | SSE stream of wheel frames
+streamWheelFrames :: (Response -> IO ResponseReceived) -> WheelParam -> Int -> IO ResponseReceived
+streamWheelFrames respond param frameDelay = do
+  let headers =
+        [ ("Content-Type", "text/event-stream"),
+          ("Cache-Control", "no-cache"),
+          ("Connection", "keep-alive"),
+          ("X-Accel-Buffering", "no")
+        ]
+
+  let streamBody write flush = do
+        putStrLn "Wheel client connected, starting animation..."
+        threadDelay 1000000 -- 1 second startup delay
+
+        let loop :: Double -> IO ()
+            loop t = do
+              let co = wheelFrame param t
+              let svg = encodeChartOptions co
+              let svgOneLine = BS.filter (/= (10 :: Word8)) svg
+              let frameBytes =
+                    BS.pack (fmap (fromIntegral . fromEnum) ("data: " :: String))
+                      <> svgOneLine
+                      <> BS.pack (fmap (fromIntegral . fromEnum) ("\n\n" :: String))
+              _ <- write (fromByteString frameBytes)
+              _ <- flush
+              threadDelay frameDelay
+              loop (t + fromIntegral frameDelay / 1000000.0)
+
+        loop 0
+
+  respond $ responseStream ok200 headers streamBody
+
+-- | HTML page for wheel animation
+serveWheelIndexHtml :: (Response -> IO ResponseReceived) -> WheelParam -> IO ResponseReceived
+serveWheelIndexHtml respond param = do
+  let paramLabel = case param of
+        WLightness -> "Lightness"
+        WChroma -> "Chroma"
+        WHue -> "Hue"
+  let html =
+        BL.fromStrict $
+          encodeUtf8 $
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Color Wheel — "
+              <> paramLabel
+              <> "</title><style>"
+              <> "body{background:#1a1a2e;color:#e0e0e0;font-family:system-ui,sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}"
+              <> "h1{margin:0 0 8px 0;font-size:1.4rem;font-weight:400;letter-spacing:0.04em}"
+              <> ".info{color:#888;font-size:0.85rem;margin-bottom:20px}"
+              <> "#svg{background:#1a1a2e;border-radius:8px}"
+              <> "#svg svg{display:block;max-width:90vw;max-height:80vh}"
+              <> "</style></head><body>"
+              <> "<h1>Color Wheel — "
+              <> paramLabel
+              <> " sweep</h1>"
+              <> "<div class=\"info\">Animating "
+              <> paramLabel
+              <> " parameter</div>"
+              <> "<div id=\"svg\"></div>"
+              <> "<script>"
+              <> "const es = new EventSource('/sse');"
+              <> "es.onmessage = (e) => { document.getElementById('svg').innerHTML = e.data; };"
+              <> "es.onerror = (e) => console.error('SSE error', e);"
+              <> "</script>"
+              <> "</body></html>"
+  respond $
+    responseLBS
+      ok200
+      [("Content-Type", "text/html; charset=utf-8")]
+      html
+
 main :: IO ()
 main = do
   o <- execParser (appConfig defaultAppConfig)
@@ -358,3 +544,4 @@ main = do
     RunDemo -> demoServer port
     RunPush -> pushServer o
     RunMouse -> mouseServer o
+    RunWheel -> wheelServer o
