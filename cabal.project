@@ -1,35 +1,12 @@
 packages:
   prettychart.cabal
-
-source-repository-package
-  type: git
-  location: https://github.com/tonyday567/chart-svg.git
-  branch: feat/circuits-0.2-cleanup
-
-source-repository-package
-  type: git
-  location: https://github.com/tonyday567/numhask-space.git
-  branch: fix/show-prec
-
-source-repository-package
-  type: git
-  location: https://github.com/tonyday567/numhask.git
-  branch: main
-
-source-repository-package
-  type: git
-  location: https://github.com/tonyday567/formatn.git
-  branch: main
-
-source-repository-package
-  type: git
-  location: https://github.com/tonyday567/circuits-parser.git
-  branch: feat/ci-cleanup
-
-source-repository-package
-  type: git
-  location: https://github.com/tonyday567/circuits.git
-  branch: feat/circuits-0.2-cleanup
+  ../chart-svg/chart-svg.cabal
+  ../numhask-space/numhask-space.cabal
+  ../numhask/numhask.cabal
+  ../formatn/formatn.cabal
+  ../circuits-parser/circuits-parser.cabal
+  ../circuits/circuits.cabal
+  ../harpie/harpie.cabal
 
 constraints:
   circuits >= 0.2
