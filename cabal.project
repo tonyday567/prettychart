@@ -14,4 +14,7 @@ constraints:
 write-ghc-environment-files: always
 
 allow-newer:
+  *:base,
+  *:template-haskell,
+  string-interpolate:template-haskell,
   tdigest:base
