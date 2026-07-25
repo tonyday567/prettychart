@@ -49,7 +49,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Time (UTCTime (..))
 import GHC.Generics
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core
 
 -- $setup
