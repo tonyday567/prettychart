@@ -1,15 +1,19 @@
 packages:
   prettychart.cabal
   ../chart-svg/chart-svg.cabal
+  ../markup-parse/markup-parse.cabal
   ../numhask-space/numhask-space.cabal
   ../numhask/numhask.cabal
+  ../numhask-diff/numhask-diff.cabal
+  ../harpie/harpie.cabal
+  ../harpie-numhask/harpie-numhask.cabal
   ../formatn/formatn.cabal
   ../circuits-parser/circuits-parser.cabal
+  ../process-stats/process-stats.cabal
   ../circuits/circuits.cabal
-  ../harpie/harpie.cabal
 
 constraints:
-  circuits >= 0.2
+  circuits >= 0.3
 
 write-ghc-environment-files: always
 
