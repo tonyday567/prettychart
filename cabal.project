@@ -21,4 +21,3 @@ allow-newer:
   *:base,
   *:template-haskell,
   string-interpolate:template-haskell,
-  tdigest:base
