@@ -4,7 +4,7 @@ packages:
   ../markup-parse/markup-parse.cabal
   ../numhask-space/numhask-space.cabal
   ../numhask/numhask.cabal
-  ../numhask-diff/numhask-diff.cabal
+  ../circuits-diff/circuits-diff.cabal
   ../harpie/harpie.cabal
   ../formatn/formatn.cabal
   ../circuits-parser/circuits-parser.cabal
