@@ -5,10 +5,11 @@ packages:
   ../numhask-space/numhask-space.cabal
   ../numhask/numhask.cabal
   ../circuits-diff/circuits-diff.cabal
+  ../circuits-mat/circuits-mat.cabal
   ../harpie/harpie.cabal
   ../formatn/formatn.cabal
   ../circuits-parser/circuits-parser.cabal
-  ../process-stats/process-stats.cabal
+  ../circuits-stats/circuits-stats.cabal
   ../circuits/circuits.cabal
 
 write-ghc-environment-files: always
