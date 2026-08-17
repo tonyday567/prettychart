@@ -1,15 +1,3 @@
-packages:
-  prettychart.cabal
-  ../chart-svg/chart-svg.cabal
-  ../markup-parse/markup-parse.cabal
-  ../numhask-space/numhask-space.cabal
-  ../numhask/numhask.cabal
-  ../circuits-diff/circuits-diff.cabal
-  ../circuits-mat/circuits-mat.cabal
-  ../harpie/harpie.cabal
-  ../formatn/formatn.cabal
-  ../circuits-parser/circuits-parser.cabal
-  ../circuits-stats/circuits-stats.cabal
-  ../circuits/circuits.cabal
+packages: prettychart.cabal
 
 write-ghc-environment-files: always
