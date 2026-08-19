@@ -10,18 +10,15 @@
 module Main where
 
 import Chart
-import Control.Concurrent (threadDelay)
 import Data.Bool
-import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as BL
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Network.HTTP.Types (ok200)
-import Network.Wai (Application, Response, ResponseReceived, pathInfo, responseLBS, responseStream)
+import Network.Wai (Application, responseLBS)
 import Network.Wai.Handler.Warp (run)
 import Options.Applicative
-import System.Exit (exitFailure)
-import System.FilePath (dropExtension, takeFileName, (<.>), (</>))
+import System.FilePath (dropExtension, takeFileName, (<.>))
 import Prelude
 
 data Mode = WriteFile FilePath | Serve Int

@@ -3,7 +3,6 @@
 TAGS
 stack.yaml.lock
 **/.DS_Store
-/cabal.project.local
 /.hkgr/
 /.hie/
 /.ghc.environment.aarch64-darwin-9.10.1
@@ -11,4 +10,3 @@ stack.yaml.lock
 /.ghc.environment.aarch64-darwin-9.6.6
 /.ghc.environment.aarch64-darwin-9.12.2
 .ghc.environment.*
-/cabal.project.local*
