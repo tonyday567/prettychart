@@ -51,9 +51,9 @@ library
   default-language: GHC2024
   hs-source-dirs: src
   build-depends:
-    async >=2.2.4 && <2.3,
+    async >=2.2 && <2.3,
     base >=4.14 && <5,
-    bytestring >=0.11.3 && <0.13,
+    bytestring >=0.11 && <0.13,
     chart-svg >=0.8 && <0.9,
     containers >=0.6 && <0.9,
     http-types >=0.12 && <0.13,
@@ -77,16 +77,16 @@ executable prettychart-serve
   main-is: prettychart-serve.hs
   hs-source-dirs: app
   build-depends:
-    async >=2.2.4 && <2.3,
+    async >=2.2 && <2.3,
     base >=4.14 && <5,
     binary >=0.8 && <0.9,
-    bytestring >=0.11.3 && <0.13,
+    bytestring >=0.11 && <0.13,
     chart-svg >=0.8 && <0.9,
     filepath >=1.4 && <1.6,
-    fsnotify >=0.4.1 && <0.5,
+    fsnotify >=0.4 && <0.5,
     http-types >=0.12 && <0.13,
     numhask-space >=0.10 && <0.14,
-    optics-core >=0.4.1 && <0.5,
+    optics-core >=0.4 && <0.5,
     optparse-applicative >=0.17 && <0.20,
     prettychart,
     process >=1.6 && <1.7,
@@ -105,7 +105,7 @@ executable prettychart-render
   hs-source-dirs: app
   build-depends:
     base >=4.14 && <5,
-    bytestring >=0.11.3 && <0.13,
+    bytestring >=0.11 && <0.13,
     chart-svg >=0.8 && <0.9,
     filepath >=1.4 && <1.6,
     http-types >=0.12 && <0.13,
