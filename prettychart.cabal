@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: prettychart
-version: 0.3.0.3
+version: 0.3.0.4
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2023
@@ -15,10 +15,10 @@ description:
 
 build-type: Simple
 tested-with:
-  ghc ==9.6.7
-  ghc ==9.8.4
   ghc ==9.10.2
   ghc ==9.12.2
+  ghc ==9.6.7
+  ghc ==9.8.4
 
 extra-doc-files:
   ChangeLog.md
@@ -84,7 +84,7 @@ library
     numhask-space >=0.10 && <0.14,
     optics-core >=0.4 && <0.5,
     text >=1.2 && <2.2,
-    time >=1.9 && <1.15,
+    time >=1.9 && <1.16,
     web-rep >=0.12.1 && <0.15,
 
   exposed-modules:
