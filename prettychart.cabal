@@ -95,8 +95,6 @@ executable prettychart-serve
     wai >=3.2 && <3.3,
     warp >=3.3 && <3.5,
 
-  ghc-options: -O2
-
 executable prettychart-render
   import: ghc-options-exe-stanza
   import: ghc-options-stanza
