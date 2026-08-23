@@ -10,3 +10,8 @@ stack.yaml.lock
 /.ghc.environment.aarch64-darwin-9.6.6
 /.ghc.environment.aarch64-darwin-9.12.2
 .ghc.environment.*
+dist-newstyle/
+*.ghc.environment.*
+.stack-work/
+.DS_Store
+cabal.project.local
